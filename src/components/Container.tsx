@@ -20,9 +20,7 @@ const Container: React.FC<Props> = ({ cells }) => {
   return (
     <div>
       <ul>
-        <li>
-          {contents()}
-        </li>
+        {contents()}
       </ul>
     </div>
   );
