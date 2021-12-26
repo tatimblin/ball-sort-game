@@ -6,7 +6,7 @@ function App() {
   return (
     <div className="container mx-auto">
       <h1 className="text-lg font-bold underline">
-        Hello world!
+        Ball sort game!
       </h1>
       <Level />
     </div>

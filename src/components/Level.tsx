@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Container from './Container';
 import { Game } from '../utils/Game';
 
@@ -8,13 +8,13 @@ const Level: React.FC = () => {
   const [level, setLevel] = useState(game.getLevel(0));
 
   const callback = (from: number, to: number) => {
-    setLevel([...game.swap(level, from, to)]);
+    setLevel([...game.move(level, from, to)]);
   };
 
   const containers = (): JSX.Element[] => {
     return level.map((contents: number[], index: number) => {
       return (
-        <li key={`x${index}`}>
+        <li className="w-12 mx-2 bg-slate-100" key={`x${index}`}>
           <Container cells={contents} column={index} callback={callback} />
         </li>
       );

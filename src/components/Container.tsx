@@ -13,8 +13,8 @@ const Container: React.FC<Props> = ({ cells, column, callback }) => {
   const contents = (): JSX.Element[] => {
     return cells.map((cell, row) => {
       return (
-        <li className="p-1 mx-2 bg-slate-100" key={`x${column}y${row}`}>
-          <Cell id={cell} column={column} draggable={row === 0} />
+        <li className="p-1" key={`x${column}y${row}`}>
+          <Cell id={cell} column={column} draggable={row === cells.length - 1} />
         </li>
       );
     });
@@ -22,10 +22,11 @@ const Container: React.FC<Props> = ({ cells, column, callback }) => {
 
   return (
     <div
+      className="h-full"
       onDrop={e => onDropEvent(e, column, callback)}
       onDragOver={e => onDragOverEvent(e)}
     >
-      <ul>
+      <ul className="flex flex-col-reverse h-full">
         {contents()}
       </ul>
     </div>
