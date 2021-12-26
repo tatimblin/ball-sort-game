@@ -1,30 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Container from './Container';
+import { Game } from '../utils/Game';
 
 const Level: React.FC = () => {
+  const game = new Game();
 
-  const [level, setLevel] = useState([
-    [0, 1, 0, 3],
-    [3, 1, 1, 2],
-    [2, 3, 0, 2],
-    [1, 2, 3, 0]
-  ]);
+  const [level, setLevel] = useState(game.getLevel(0));
 
   const callback = (from: number, to: number) => {
-    setLevel([
-      [5, 1, 0, 3],
-      [3, 1, 1, 2],
-      [2, 3, 0, 2],
-      [1, 2, 3, 0]
-    ]);
-    console.log(level, from, to);
-  }
-  
+    setLevel([...game.swap(level, from, to)]);
+  };
+
   const containers = (): JSX.Element[] => {
-    return level.map((contents, index) => {
+    return level.map((contents: number[], index: number) => {
       return (
-        <li>
-          <Container cells={contents} index={index} callback={callback} />
+        <li key={`x${index}`}>
+          <Container cells={contents} column={index} callback={callback} />
         </li>
       );
     });

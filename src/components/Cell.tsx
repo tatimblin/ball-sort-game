@@ -1,19 +1,16 @@
 import React from 'react';
+import { onDragStartEvent } from '../utils/DragEvents';
 
 interface Props {
   id: number
   column: number
+  draggable: boolean
 }
 
-const Cell: React.FC<Props> = ({ id, column }) => {
-
-  const onDragStartEvent = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.dataTransfer.setData('index', index.toString());
-  }
-
+const Cell: React.FC<Props> = ({ id, column, draggable }) => {
   return (
     <div
-      draggable="true"
+      draggable={draggable}
       onDragStart={e => onDragStartEvent(e, column)}
     >
       {id}

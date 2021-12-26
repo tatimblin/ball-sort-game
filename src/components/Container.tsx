@@ -1,36 +1,28 @@
 import React from 'react';
 import Cell from './Cell';
+import { onDropEvent, onDragOverEvent } from '../utils/DragEvents';
 
 interface Props {
   cells: number[]
-  index: number
+  column: number
   callback: any
 }
 
-const Container: React.FC<Props> = ({ cells, index, callback }) => {
+const Container: React.FC<Props> = ({ cells, column, callback }) => {
 
   const contents = (): JSX.Element[] => {
-    return cells.map((cell) => {
+    return cells.map((cell, row) => {
       return (
-        <li className="p-1 mx-2 bg-slate-100">
-          <Cell id={cell} column={index} />
+        <li className="p-1 mx-2 bg-slate-100" key={`x${column}y${row}`}>
+          <Cell id={cell} column={column} draggable={row === 0} />
         </li>
       );
     });
   };
 
-  const onDropEvent = (e: React.DragEvent<HTMLDivElement>, to: number) => {
-    const from = parseInt(e.dataTransfer.getData('index'));
-    callback(from, to);
-  }
-
-  const onDragOverEvent = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  }
-
   return (
     <div
-      onDrop={e => onDropEvent(e, index)}
+      onDrop={e => onDropEvent(e, column, callback)}
       onDragOver={e => onDragOverEvent(e)}
     >
       <ul>
