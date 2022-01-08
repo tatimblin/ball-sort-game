@@ -2,7 +2,7 @@ import LevelData from './LevelData.json';
 
 interface IGame {
   setLevel(index: number) : number[][];
-  move(from: number, to: number) : number[][];
+  moveCell(from: number, to: number) : number[][];
   isValidMove(cell: number, col: number[]) : boolean;
 }
 
@@ -22,8 +22,8 @@ class Game implements IGame {
   /**
    * Load a new level
    * 
-   * @param index index of the current level
-   * @returns level data
+   * @param {number} index index of the current level
+   * @returns {number[][]} Level data
    */
   setLevel(index: number) : number[][] {
     this._level = [...LevelData.levels[index], [], []];
@@ -31,6 +31,11 @@ class Game implements IGame {
     return this._level;
   }
 
+  /**
+   * Get the current level
+   * 
+   * @returns {number[][]}
+   */
   getLevel() : number[][] {
     return this._level;
   }
@@ -38,11 +43,11 @@ class Game implements IGame {
   /**
    * Attempt to move a cell
    * 
-   * @param from column to move a cell from
-   * @param to column to move a cell to
-   * @returns updated level data
+   * @param {number} from column to move a cell from
+   * @param {number} to column to move a cell to
+   * @returns {number[][]} Level data
    */
-  move(from: number, to: number) : number[][] {
+  moveCell(from: number, to: number) : number[][] {
     const cell = this._level[from].pop() || 0;
 
     if (this.isValidMove(cell, this._level[to])) {
@@ -57,9 +62,9 @@ class Game implements IGame {
   /**
    * Check if a cell can be moved to a column
    * 
-   * @param cell The cell to move
-   * @param col The column to move it to
-   * @returns boolean if the move is valid
+   * @param {number} cell - The cell to move
+   * @param {number} col - The column to move it to
+   * @returns {boolean} If the move is valid
    */
   isValidMove(cell: number, col: number[]): boolean {
     if (!col.length) return true;

@@ -10,7 +10,7 @@ const Level: React.FC = () => {
   const [level, setLevel] = useState(game.getLevel());
 
   const callback = (from: number, to: number) => {
-    setLevel([...game.move(from, to)]);
+    setLevel([...game.moveCell(from, to)]);
   };
 
   const containers = (): JSX.Element[] => {
