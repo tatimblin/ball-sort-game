@@ -1,3 +1,5 @@
+import React from "react";
+
 type Callback = (from: number, to: number) => void;
 
 /**
@@ -27,8 +29,13 @@ const onDragStartEvent = (e: React.DragEvent<HTMLDivElement>, from: number) => {
   e.dataTransfer.setData('index', from.toString());
 }
 
+const onClickEvent = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+  console.log(e);
+}
+
 export {
   onDropEvent,
   onDragOverEvent,
   onDragStartEvent,
+  onClickEvent,
 };

@@ -1,46 +1,57 @@
 import LevelData from './LevelData.json';
 
 interface IGame {
-  getLevel(level: number) : number[][];
-  move(level: number[][], from: number, to: number) : number[][];
+  setLevel(index: number) : number[][];
+  move(from: number, to: number) : number[][];
   isValidMove(cell: number, col: number[]) : boolean;
 }
 
+interface IProps {
+  index: number
+}
+
 class Game implements IGame {
-  constructor(public levelIndex: number = 0) {
-    this.levelIndex = levelIndex;
+  _index: number;
+  _level: number[][];
+
+  constructor(public props: IProps) {
+    this._index = props.index;
+    this._level = [...LevelData.levels[props.index || 0], [], []];
   }
 
   /**
    * Load a new level
    * 
-   * @param level index of the current level
+   * @param index index of the current level
    * @returns level data
    */
-  getLevel(level: number = this.levelIndex) : number[][] {
-    return [...LevelData.levels[level], [], []];
+  setLevel(index: number) : number[][] {
+    this._level = [...LevelData.levels[index], [], []];
+
+    return this._level;
+  }
+
+  getLevel() : number[][] {
+    return this._level;
   }
 
   /**
    * Attempt to move a cell
    * 
-   * @param level The current level data
    * @param from column to move a cell from
    * @param to column to move a cell to
    * @returns updated level data
    */
-  move(level: number[][], from: number, to: number) : number[][] {
-    const cell = level[from].pop() || 0;
+  move(from: number, to: number) : number[][] {
+    const cell = this._level[from].pop() || 0;
 
-    console.log(cell, level[to], this.isValidMove(cell, level[to]));
-
-    if (this.isValidMove(cell, level[to])) {
-      level[to].push(cell);
+    if (this.isValidMove(cell, this._level[to])) {
+      this._level[to].push(cell);
     } else {
-      level[from].push(cell);
+      this._level[from].push(cell);
     }
 
-    return level;
+    return this._level;
   }
 
   /**

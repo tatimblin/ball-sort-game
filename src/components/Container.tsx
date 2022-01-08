@@ -1,6 +1,6 @@
 import React from 'react';
 import Cell from './Cell';
-import { onDropEvent, onDragOverEvent } from '../utils/DragEvents';
+import { onDropEvent, onDragOverEvent, onClickEvent } from '../utils/Controls';
 
 interface Props {
   cells: number[]
@@ -25,6 +25,7 @@ const Container: React.FC<Props> = ({ cells, column, callback }) => {
       className="h-full"
       onDrop={e => onDropEvent(e, column, callback)}
       onDragOver={e => onDragOverEvent(e)}
+      onClick={e => onClickEvent(e)}
     >
       <ul className="flex flex-col-reverse h-full">
         {contents()}

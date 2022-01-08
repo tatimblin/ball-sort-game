@@ -1,5 +1,5 @@
 import React from 'react';
-import { onDragStartEvent } from '../utils/DragEvents';
+import { onDragStartEvent } from '../utils/Controls';
 
 interface Props {
   id: number

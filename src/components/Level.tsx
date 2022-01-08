@@ -3,12 +3,14 @@ import Container from './Container';
 import { Game } from '../utils/Game';
 
 const Level: React.FC = () => {
-  const game = new Game();
+  const game = new Game({
+    index: 0,
+  });
 
-  const [level, setLevel] = useState(game.getLevel(0));
+  const [level, setLevel] = useState(game.getLevel());
 
   const callback = (from: number, to: number) => {
-    setLevel([...game.move(level, from, to)]);
+    setLevel([...game.move(from, to)]);
   };
 
   const containers = (): JSX.Element[] => {
