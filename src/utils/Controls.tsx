@@ -1,13 +1,13 @@
 import React from "react";
 
-type Callback = (from: number, to: number) => void;
+type onDrop = (from: number, to: number) => void;
 
 /**
  * 
  * @param e drag event
  * @param to index of the container the cell was dragged to
  */
-const onDropEvent = (e: React.DragEvent<HTMLDivElement>, to: number, callback: Callback) => {
+const onDropEvent = (e: React.DragEvent<HTMLDivElement>, to: number, callback: onDrop) => {
   const from = parseInt(e.dataTransfer.getData('index'));
   callback(from, to);
 }
@@ -29,13 +29,8 @@ const onDragStartEvent = (e: React.DragEvent<HTMLDivElement>, from: number) => {
   e.dataTransfer.setData('index', from.toString());
 }
 
-const onClickEvent = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-  console.log(e);
-}
-
 export {
   onDropEvent,
   onDragOverEvent,
   onDragStartEvent,
-  onClickEvent,
 };

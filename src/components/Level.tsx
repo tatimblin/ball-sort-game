@@ -7,17 +7,35 @@ const Level: React.FC = () => {
     index: 0,
   });
 
-  const [level, setLevel] = useState(game.getLevel());
+  const [level, setLevel] = useState(game.loadLevel(0));
+  const [active, setActive] = useState(-1);
 
-  const callback = (from: number, to: number) => {
-    setLevel([...game.moveCell(from, to)]);
+  const moveFromTo = (from: number, to: number) => {
+    setLevel((prevLevel: number[][]) => [...game.moveCell(prevLevel, from, to)]);
   };
+
+  const onClick = (index: number) => {
+    setActive((prevActive: number) => {
+      if (prevActive < 0) {
+        return index;
+      } else {
+        moveFromTo(prevActive, index);
+        return -1;
+      }
+    });
+  }
 
   const containers = (): JSX.Element[] => {
     return level.map((contents: number[], index: number) => {
       return (
         <li className="w-12 mx-2 bg-slate-100" key={`x${index}`}>
-          <Container cells={contents} column={index} callback={callback} />
+          <Container
+            cells={contents}
+            column={index}
+            onDrop={moveFromTo}
+            onClick={onClick}
+            active={active === index}
+          />
         </li>
       );
     });

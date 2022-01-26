@@ -1,8 +1,8 @@
 import LevelData from './LevelData.json';
 
 interface IGame {
-  setLevel(index: number) : number[][];
-  moveCell(from: number, to: number) : number[][];
+  loadLevel(index: number) : number[][];
+  moveCell(level: number[][], from: number, to: number) : number[][];
   isValidMove(cell: number, col: number[]) : boolean;
 }
 
@@ -15,8 +15,8 @@ class Game implements IGame {
   _level: number[][];
 
   constructor(public props: IProps) {
-    this._index = props.index;
-    this._level = [...LevelData.levels[props.index || 0], [], []];
+    this._index = props.index || 0;
+    this._level = this.loadLevel(this._index);
   }
 
   /**
@@ -25,7 +25,7 @@ class Game implements IGame {
    * @param {number} index index of the current level
    * @returns {number[][]} Level data
    */
-  setLevel(index: number) : number[][] {
+  loadLevel(index: number) : number[][] {
     this._level = [...LevelData.levels[index], [], []];
 
     return this._level;
@@ -43,20 +43,24 @@ class Game implements IGame {
   /**
    * Attempt to move a cell
    * 
+   * @param {number[][]} level current level data
    * @param {number} from column to move a cell from
    * @param {number} to column to move a cell to
-   * @returns {number[][]} Level data
+   * @returns {number[][]} new level data
    */
-  moveCell(from: number, to: number) : number[][] {
-    const cell = this._level[from].pop() || 0;
+  moveCell(level: number[][], from: number, to: number) : number[][] {
+    const cell: number | undefined = level[from].pop();
+    if (cell === undefined) return level;
 
-    if (this.isValidMove(cell, this._level[to])) {
-      this._level[to].push(cell);
+    if (this.isValidMove(cell, level[to])) {
+      level[to].push(cell);
     } else {
-      this._level[from].push(cell);
+      level[from].push(cell);
     }
 
-    return this._level;
+    console.log(cell, level);
+
+    return level;
   }
 
   /**
@@ -71,11 +75,7 @@ class Game implements IGame {
 
     const matchingCell = col[col.length - 1];
 
-    if (cell === matchingCell && col.length < 4) {
-      return true;
-    }
-
-    return false;
+    return (cell === matchingCell && col.length < 4);
   }
 }
 
