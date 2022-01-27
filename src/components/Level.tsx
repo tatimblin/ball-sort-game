@@ -7,22 +7,20 @@ const Level: React.FC = () => {
     index: 0,
   });
 
-  const [level, setLevel] = useState(game.loadLevel(0));
-  const [active, setActive] = useState(-1);
+  const [level, setLevel] = useState<number[][]>(game.loadLevel(0));
+  const [active, setActive] = useState<number | null>();
 
-  const moveFromTo = (from: number, to: number) => {
-    setLevel((prevLevel: number[][]) => [...game.moveCell(prevLevel, from, to)]);
+  const onDrop = (from: number, to: number) => {
+    setLevel(prevLevel => [...game.moveCell(prevLevel, from, to)]);
   };
 
   const onClick = (index: number) => {
-    setActive((prevActive: number) => {
-      if (prevActive < 0) {
-        return index;
-      } else {
-        moveFromTo(prevActive, index);
-        return -1;
-      }
-    });
+    if (typeof active === 'number') {
+      setLevel(prevLevel => [...game.moveCell(prevLevel, active, index)]);
+      setActive(null);
+    } else {
+      setActive(index);
+    }
   }
 
   const containers = (): JSX.Element[] => {
@@ -32,7 +30,7 @@ const Level: React.FC = () => {
           <Container
             cells={contents}
             column={index}
-            onDrop={moveFromTo}
+            onDrop={onDrop}
             onClick={onClick}
             active={active === index}
           />
