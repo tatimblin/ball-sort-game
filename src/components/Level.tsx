@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Container from './Container';
 import { Game } from '../utils/Game';
 
@@ -8,16 +8,17 @@ const Level: React.FC = () => {
   });
 
   const [level, setLevel] = useState<number[][]>(game.loadLevel(0));
-  const [active, setActive] = useState<number | null>();
+  const [active, setActive] = useState<number | undefined>();
 
   const onDrop = (from: number, to: number) => {
     setLevel(prevLevel => [...game.moveCell(prevLevel, from, to)]);
+    setActive(undefined);
   };
 
   const onClick = (index: number) => {
-    if (typeof active === 'number') {
-      setLevel(prevLevel => [...game.moveCell(prevLevel, active, index)]);
-      setActive(null);
+    if (typeof active === 'number' && active !== index) {
+      setLevel(prevLevel => game.moveCell(prevLevel, active, index));
+      setActive(undefined);
     } else {
       setActive(index);
     }
@@ -41,6 +42,7 @@ const Level: React.FC = () => {
 
   return (
     <div>
+      <p>active: {active ? active : 'null'}</p>
       <ul className="flex">
         {containers()}
       </ul>

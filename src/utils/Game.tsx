@@ -12,11 +12,9 @@ interface IProps {
 
 class Game implements IGame {
   _index: number;
-  _level: number[][];
 
   constructor(public props: IProps) {
     this._index = props.index || 0;
-    this._level = this.loadLevel(this._index);
   }
 
   /**
@@ -26,18 +24,7 @@ class Game implements IGame {
    * @returns {number[][]} Level data
    */
   loadLevel(index: number) : number[][] {
-    this._level = [...LevelData.levels[index], [], []];
-
-    return this._level;
-  }
-
-  /**
-   * Get the current level
-   * 
-   * @returns {number[][]}
-   */
-  getLevel() : number[][] {
-    return this._level;
+    return [...LevelData.levels[index], [], []];
   }
 
   /**
@@ -49,33 +36,30 @@ class Game implements IGame {
    * @returns {number[][]} new level data
    */
   moveCell(level: number[][], from: number, to: number) : number[][] {
-    const cell: number | undefined = level[from].pop();
-    if (cell === undefined) return level;
+    const newLevel = JSON.parse(JSON.stringify(level))
+    const cell: number | undefined = newLevel[from].pop();
+    if (cell === undefined) return newLevel;
 
-    if (this.isValidMove(cell, level[to])) {
-      level[to].push(cell);
+    if (this.isValidMove(cell, newLevel[to])) {
+      newLevel[to].push(cell);
     } else {
-      level[from].push(cell);
+      newLevel[from].push(cell);
     }
 
-    console.log(cell, level);
-
-    return level;
+    return newLevel;
   }
 
   /**
    * Check if a cell can be moved to a column
    * 
    * @param {number} cell - The cell to move
-   * @param {number} col - The column to move it to
+   * @param {number} toColumn - The column to move it to
    * @returns {boolean} If the move is valid
    */
-  isValidMove(cell: number, col: number[]): boolean {
-    if (!col.length) return true;
+  isValidMove(cell: number, toColumn: number[]): boolean {
+    if (!toColumn.length) return true;
 
-    const matchingCell = col[col.length - 1];
-
-    return (cell === matchingCell && col.length < 4);
+    return (cell === toColumn.at(-1) && toColumn.length < 4);
   }
 }
 
