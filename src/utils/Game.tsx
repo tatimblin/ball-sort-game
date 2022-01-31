@@ -12,9 +12,11 @@ interface IProps {
 
 class Game implements IGame {
   _index: number;
+  _level: number[][];
 
   constructor(public props: IProps) {
     this._index = props.index || 0;
+    this._level = this.loadLevel(this._index);
   }
 
   /**
@@ -25,6 +27,16 @@ class Game implements IGame {
    */
   loadLevel(index: number) : number[][] {
     return [...LevelData.levels[index], [], []];
+  }
+
+  /**
+   * Get a column of the current level
+   * 
+   * @param {number} index - A column index
+   * @returns {number[]} A column
+   */
+  getColumn(index: number) : number[] {
+    return this._level[index];
   }
 
   /**
@@ -46,6 +58,8 @@ class Game implements IGame {
       newLevel[from].push(cell);
     }
 
+    this._level = newLevel;
+
     return newLevel;
   }
 
@@ -60,6 +74,16 @@ class Game implements IGame {
     if (!toColumn.length) return true;
 
     return (cell === toColumn.at(-1) && toColumn.length < 4);
+  }
+
+  /**
+   * 
+   * @param array
+   * @param size
+   * @returns 
+   */
+  isEqual = (array: number[], size: number = 4) => {
+    return array.every(item => item === array[0]) && array.length === size; 
   }
 }
 
