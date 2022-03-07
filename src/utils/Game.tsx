@@ -13,10 +13,12 @@ interface IProps {
 class Game implements IGame {
   _index: number;
   _level: number[][];
+  _progressThreshold: number;
 
   constructor(public props: IProps) {
     this._index = props.index || 0;
     this._level = this.loadLevel(this._index);
+    this._progressThreshold = 100;
   }
 
   /**
@@ -26,7 +28,9 @@ class Game implements IGame {
    * @returns {number[][]} Level data
    */
   loadLevel(index: number) : number[][] {
-    return [...LevelData.levels[index], [], []];
+    const level = [...LevelData.levels[index], [], []];
+    this._progressThreshold = Math.floor((level.length - 2) / level.length * 100);
+    return level;
   }
 
   /**
@@ -37,6 +41,15 @@ class Game implements IGame {
    */
   getColumn(index: number) : number[] {
     return this._level[index];
+  }
+
+  /**
+   * Get _progressThreshold
+   *
+   * @returns {number}
+   */
+  getProgressThreshold() : number {
+    return this._progressThreshold;
   }
 
   /**
@@ -98,11 +111,12 @@ class Game implements IGame {
    * Return boolean if progress is greater than threshold
    * 
    * @param array
+   * @param comparer
    * @param threshold
    * @returns {boolean}
    */
-  isHomogenous(array: number[] | boolean[], threshold: number = 100): boolean {
-    return this.calcProgress(array) >= threshold;
+  isHomogenous(array: number[] | boolean[], threshold: number = 100, comparer: number | boolean = array[0]): boolean {
+    return this.calcProgress(array, comparer) >= threshold;
   }
 
   /**

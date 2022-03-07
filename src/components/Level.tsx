@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Container from './Container';
 import { Game } from '../utils/Game';
 
@@ -17,20 +17,6 @@ const Level: React.FC<Props> = ({
   const [active, setActive] = useState<number | undefined>();
   const [progress, setProgress] = useState<boolean[]>(Array(level.length).fill(false));
 
-  const move = (from: number, to: number) => {
-    setLevel((prevLevel) => {
-      const newLevel = game.moveCell(prevLevel, from, to);
-      if (game.isComplete(newLevel[to])) {
-        setProgress((prevProgress) => {
-          prevProgress[to] = true
-          return prevProgress;
-        });
-      }
-      return newLevel;
-    });
-    setActive(undefined);
-  };
-
   const onClick = (index: number) => {
     if (typeof active === 'number' && active !== index) {
       move(active, index);
@@ -38,6 +24,30 @@ const Level: React.FC<Props> = ({
       setActive(active === index ? undefined : index);
     }
   }
+
+  const move = (from: number, to: number) => {
+    setLevel((prevLevel) => {
+      const newLevel = game.moveCell(prevLevel, from, to);
+      if (game.isComplete(newLevel[to])) gameStatus(to);
+      return newLevel;
+    });
+    setActive(undefined);
+  };
+
+  const gameStatus = (recentlyCompletedIndex: number) => {
+    setProgress((prevProgress) => {
+      prevProgress[recentlyCompletedIndex] = true;
+
+      return prevProgress;
+    });
+  }
+
+  useEffect(() => {
+    function tryWin() {
+      if (game.isHomogenous(progress, game.getProgressThreshold(), true)) onWin();
+    }
+    tryWin();
+  }, [progress, onWin, game])
 
   const containers = (): JSX.Element[] => {
     return level.map((contents: number[], index: number) => {
