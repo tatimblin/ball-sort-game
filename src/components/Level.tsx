@@ -2,33 +2,30 @@ import React, { useState } from 'react';
 import Container from './Container';
 import { Game } from '../utils/Game';
 
-interface Progress {
-  details: boolean[]
-  value: number
+interface Props {
+  onWin: any
 }
 
-const Level: React.FC = () => {
+const Level: React.FC<Props> = ({
+  onWin,
+}) => {
   const game = new Game({
     index: 0,
   });
 
   const [level, setLevel] = useState<number[][]>(game.loadLevel(0));
   const [active, setActive] = useState<number | undefined>();
-  const [progress, setProgress] = useState<Progress>({
-    details: Array(level.length).fill(false),
-    value: 0,
-  });
+  const [progress, setProgress] = useState<boolean[]>(Array(level.length).fill(false));
 
-  const moveFromTo = (from: number, to: number) => {
-    setLevel(prevLevel => {
+  const move = (from: number, to: number) => {
+    setLevel((prevLevel) => {
       const newLevel = game.moveCell(prevLevel, from, to);
-      setProgress((prevProgress) => {
-        prevProgress.details[to] = game.isEqual(newLevel[to]);
-        prevProgress.value = prevProgress.details[to]
-          ? prevProgress.value + 1
-          : prevProgress.value;
-        return prevProgress;
-      });
+      if (game.isComplete(newLevel[to])) {
+        setProgress((prevProgress) => {
+          prevProgress[to] = true
+          return prevProgress;
+        });
+      }
       return newLevel;
     });
     setActive(undefined);
@@ -36,9 +33,9 @@ const Level: React.FC = () => {
 
   const onClick = (index: number) => {
     if (typeof active === 'number' && active !== index) {
-      moveFromTo(active, index);
+      move(active, index);
     } else {
-      setActive(index);
+      setActive(active === index ? undefined : index);
     }
   }
 
@@ -49,10 +46,10 @@ const Level: React.FC = () => {
           <Container
             cells={contents}
             column={index}
-            onDrop={moveFromTo}
+            onDrop={move}
             onClick={onClick}
             active={active === index}
-            progress={progress.details[index]}
+            complete={progress[index]}
           />
         </li>
       );

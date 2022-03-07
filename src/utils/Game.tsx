@@ -77,13 +77,53 @@ class Game implements IGame {
   }
 
   /**
+   * Return an integer 0-100, of the percent of items in an array
+   * equal some value
+   * 
+   * @param array
+   * @param comparer
+   * @returns {number}
+   */
+   calcProgress(array: number[] | boolean[], comparer: number | boolean = array[0]): number {
+    let numOfMatches = 0;
+    
+    for (const cell of array) {
+      if (cell === comparer) numOfMatches += 1;
+    }
+
+    return Math.floor(numOfMatches / array.length * 100);
+  }
+
+  /**
+   * Return boolean if progress is greater than threshold
+   * 
+   * @param array
+   * @param threshold
+   * @returns {boolean}
+   */
+  isHomogenous(array: number[] | boolean[], threshold: number = 100): boolean {
+    return this.calcProgress(array) >= threshold;
+  }
+
+  /**
+   * Return boolean if container is full
    * 
    * @param array
    * @param size
-   * @returns 
+   * @returns {boolean}
    */
-  isEqual = (array: number[], size: number = 4) => {
-    return array.every(item => item === array[0]) && array.length === size; 
+  isFull(array: number[] | boolean[], size: number = 4): boolean {
+    return array.length === size;
+  }
+
+  /**
+   * Return boolean if container is homogenous and full
+   * 
+   * @param array
+   * @returns {boolean}
+   */
+  isComplete(array: number[] | boolean[]): boolean {
+    return this.isHomogenous(array) && this.isFull(array);
   }
 }
 

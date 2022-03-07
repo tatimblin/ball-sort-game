@@ -9,7 +9,7 @@ interface Props {
   column: number
   onDrop: any
   onClick: any
-  progress: boolean
+  complete: boolean
 }
 
 const Container: React.FC<Props> = ({
@@ -18,7 +18,7 @@ const Container: React.FC<Props> = ({
   column,
   onDrop,
   onClick,
-  progress,
+  complete,
 }) => {
 
   const contents = (): JSX.Element[] => {
@@ -31,7 +31,7 @@ const Container: React.FC<Props> = ({
           <Cell
             id={cell}
             column={column}
-            draggable={row === cells.length - 1 && !progress}
+            draggable={row === cells.length - 1 && !complete}
             active={active && row === cells.length - 1}
           />
         </li>
@@ -42,13 +42,13 @@ const Container: React.FC<Props> = ({
   return (
     <div
       className="h-full"
-      onDrop={e => !progress && onDropEvent(e, column, onDrop)}
-      onDragOver={e => !progress && onDragOverEvent(e)}
-      onClick={() => !progress && onClick(column)}
+      onDrop={e => !complete && onDropEvent(e, column, onDrop)}
+      onDragOver={e => !complete && onDragOverEvent(e)}
+      onClick={() => !complete && onClick(column)}
     >
       <ul
         className={classNames({
-          "is-complete bg-slate-200": progress,
+          "is-complete bg-slate-200": complete,
         }, "flex flex-col-reverse h-full")}>
         {contents()}
       </ul>
