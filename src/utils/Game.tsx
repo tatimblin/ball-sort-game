@@ -85,8 +85,8 @@ class Game implements IGame {
    */
   isValidMove(cell: number, toColumn: number[]): boolean {
     if (!toColumn.length) return true;
-
-    return (cell === toColumn.at(-1) && toColumn.length < 4);
+    console.log(toColumn);
+    return (cell === toColumn[toColumn.length - 1] && toColumn.length < 4);
   }
 
   /**
