@@ -1,8 +1,11 @@
 import LevelData from './LevelData.json';
 
-interface IGame {
+export interface IGame {
+  getProgressThreshold() : number
   loadLevel(index: number) : number[][];
   moveCell(level: number[][], from: number, to: number) : number[][];
+  isComplete(array: number[] | boolean[]) : boolean;
+  isHomogenous(array: number[] | boolean[], threshold: number, comparer: number | boolean) : boolean
   isValidMove(cell: number, col: number[]) : boolean;
 }
 
@@ -85,7 +88,7 @@ class Game implements IGame {
    */
   isValidMove(cell: number, toColumn: number[]): boolean {
     if (!toColumn.length) return true;
-    console.log(toColumn);
+
     return (cell === toColumn[toColumn.length - 1] && toColumn.length < 4);
   }
 

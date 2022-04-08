@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Container from './Container';
-import { Game } from '../utils/Game';
+import { Game, IGame } from '../utils/Game';
 
 interface Props {
   onWin: any
+  level: number
 }
+
+const game: IGame = new Game({ index: 0 });
 
 const Level: React.FC<Props> = ({
   onWin,
+  level,
 }) => {
-  const game = new Game({
-    index: 0,
-  });
-
-  const [level, setLevel] = useState<number[][]>(game.loadLevel(0));
+  const [map, setMap] = useState<number[][]>(game.loadLevel(level));
   const [active, setActive] = useState<number | undefined>();
-  const [progress, setProgress] = useState<boolean[]>(Array(level.length).fill(false));
+  const [progress, setProgress] = useState<boolean[]>(Array(map.length).fill(false));
 
   const onClick = (index: number) => {
     if (typeof active === 'number' && active !== index) {
@@ -26,10 +26,10 @@ const Level: React.FC<Props> = ({
   }
 
   const move = (from: number, to: number) => {
-    setLevel((prevLevel) => {
-      const newLevel = game.moveCell(prevLevel, from, to);
-      if (game.isComplete(newLevel[to])) gameStatus(to);
-      return newLevel;
+    setMap((prevMap) => {
+      const newMap = game.moveCell(prevMap, from, to);
+      if (game.isComplete(newMap[to])) gameStatus(to);
+      return newMap;
     });
     setActive(undefined);
   };
@@ -40,17 +40,19 @@ const Level: React.FC<Props> = ({
 
       return prevProgress;
     });
+    if (game.isHomogenous(progress, game.getProgressThreshold(), true)) {
+      console.log('onWin()');
+      onWin();
+      setProgress(Array(map.length).fill(false));
+    }
   }
 
   useEffect(() => {
-    function tryWin() {
-      if (game.isHomogenous(progress, game.getProgressThreshold(), true)) onWin();
-    }
-    tryWin();
-  }, [progress, onWin, game])
+    setMap(game.loadLevel(level));
+  }, [level])
 
   const containers = (): JSX.Element[] => {
-    return level.map((contents: number[], index: number) => {
+    return map.map((contents: number[], index: number) => {
       return (
         <li className="w-12 mx-2 bg-slate-100" key={`x${index}`}>
           <Container
