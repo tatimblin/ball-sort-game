@@ -15,7 +15,7 @@ function App() {
   return (
     <div className="container mx-auto">
       <h1 className="text-lg font-bold underline">
-        Ball sort game! - {win ? 'You won!' : 'Keep going...'}
+        Ball sort game! - {win ? 'You won!' : 'Have fun'}
       </h1>
       <button onClick={() => setCount((prevCount) => prevCount += 1)}>Next Level</button> {count}
       <Level level={count} onWin={() => handleWin()} />
