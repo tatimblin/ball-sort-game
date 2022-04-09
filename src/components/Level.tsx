@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Container from './Container';
 import { Game, IGame } from '../utils/Game';
 
