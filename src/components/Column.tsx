@@ -6,16 +6,16 @@ import { onDropEvent, onDragOverEvent } from '../utils/Controls';
 interface Props {
   active: Boolean
   cells: number[]
-  column: number
+  index: number
   onDrop: any
   onClick: any
   complete: boolean
 }
 
-const Container: React.FC<Props> = ({
+const Column: React.FC<Props> = ({
   active,
   cells,
-  column,
+  index,
   onDrop,
   onClick,
   complete,
@@ -26,11 +26,11 @@ const Container: React.FC<Props> = ({
       return (
         <li
           className="p-1"
-          key={`x${column}y${row}`}
+          key={`x${index}y${row}`}
         >
           <Cell
             id={cell}
-            column={column}
+            column={index}
             draggable={row === cells.length - 1 && !complete}
             active={active && row === cells.length - 1}
           />
@@ -42,9 +42,9 @@ const Container: React.FC<Props> = ({
   return (
     <div
       className="h-full"
-      onDrop={e => !complete && onDropEvent(e, column, onDrop)}
+      onDrop={e => !complete && onDropEvent(e, index, onDrop)}
       onDragOver={e => !complete && onDragOverEvent(e)}
-      onClick={() => !complete && onClick(column)}
+      onClick={() => !complete && onClick(index)}
     >
       <ul
         className={classNames({
@@ -56,4 +56,4 @@ const Container: React.FC<Props> = ({
   );
 }
 
-export default Container;
+export default Column;

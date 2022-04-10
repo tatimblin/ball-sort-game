@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Container from './Container';
+import Column from './Column';
 import { Game, IGame } from '../utils/Game';
 
 interface Props {
@@ -35,12 +35,13 @@ const Level: React.FC<Props> = ({
   };
 
   const gameStatus = (recentlyCompletedIndex: number) => {
+    console.log('gameStatus()', game.isHomogenous(progress, true));
     setProgress((prevProgress) => {
       prevProgress[recentlyCompletedIndex] = true;
 
       return prevProgress;
     });
-    if (game.isHomogenous(progress, game.getProgressThreshold(), true)) {
+    if (game.isHomogenous(progress, true)) {
       console.log('onWin()');
       onWin();
       setProgress(Array(map.length).fill(false));
@@ -55,9 +56,9 @@ const Level: React.FC<Props> = ({
     return map.map((contents: number[], index: number) => {
       return (
         <li className="w-12 mx-2 bg-slate-100" key={`x${index}`}>
-          <Container
+          <Column
+            index={index}
             cells={contents}
-            column={index}
             onDrop={move}
             onClick={onClick}
             active={active === index}

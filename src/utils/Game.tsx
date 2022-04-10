@@ -5,12 +5,13 @@ export interface IGame {
   loadLevel(index: number) : number[][];
   moveCell(level: number[][], from: number, to: number) : number[][];
   isComplete(array: number[] | boolean[]) : boolean;
-  isHomogenous(array: number[] | boolean[], threshold: number, comparer: number | boolean) : boolean
+  isHomogenous(array: number[] | boolean[], comparer: number | boolean) : boolean
   isValidMove(cell: number, col: number[]) : boolean;
 }
 
 interface IProps {
-  index: number
+  index?: number
+  progressThreshold?: number
 }
 
 class Game implements IGame {
@@ -21,7 +22,7 @@ class Game implements IGame {
   constructor(public props: IProps) {
     this._index = props.index || 0;
     this._level = this.loadLevel(this._index);
-    this._progressThreshold = 100;
+    this._progressThreshold = props.progressThreshold || 100;
   }
 
   /**
@@ -107,6 +108,8 @@ class Game implements IGame {
       if (cell === comparer) numOfMatches += 1;
     }
 
+    console.log('calcProgress()', Math.floor(numOfMatches / array.length * 100));
+
     return Math.floor(numOfMatches / array.length * 100);
   }
 
@@ -115,11 +118,10 @@ class Game implements IGame {
    * 
    * @param array
    * @param comparer
-   * @param threshold
    * @returns {boolean}
    */
-  isHomogenous(array: number[] | boolean[], threshold: number = 100, comparer: number | boolean = array[0]): boolean {
-    return this.calcProgress(array, comparer) >= threshold;
+  isHomogenous(array: number[] | boolean[], comparer: number | boolean = array[0]): boolean {
+    return this.calcProgress(array, comparer) >= ((array.length - 2) / array.length) * 100;
   }
 
   /**
