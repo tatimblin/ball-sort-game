@@ -6,18 +6,31 @@ interface Props {
   value?: number
   coordinate?: Coordinate
   activeCoordinate: Coordinate | null | undefined
+  isDraggable?: boolean
 }
 
-const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate }) => {
+const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, isDraggable }) => {
+  const isActive = coordinate?.key === activeCoordinate?.key;
+
+  const onDragStartEvent = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!coordinate) return;
+
+    e.dataTransfer.setData('coordinate', JSON.stringify(coordinate));
+  }
 
   return (
     <li
       key={key}
       className={classNames({
-        'font-bold': coordinate?.key === activeCoordinate?.key,
+        'font-bold': isActive,
       })}
     >
-      Cell: {value} ({coordinate?.key})
+      <div
+        draggable={isDraggable}
+        onDragStart={onDragStartEvent}
+      >
+        Cell: {value} ({coordinate?.key})
+      </div>
     </li>
   );
 };

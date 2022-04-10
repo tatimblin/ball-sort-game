@@ -5,8 +5,6 @@ import './App.css';
 
 function App() {
   const [activeCoordinate, setActiveCoordinate] = useState<Coordinate|null>();
-  const [win, setWin] = useState<boolean>(false);
-  const [count, setCount] = useState<number>(0);
   const [level, setLevel] = useState<number[][]>([
     [1, 1, 1, 2],
     [2, 2, 2, 1],
@@ -16,8 +14,10 @@ function App() {
     [],
   ]);
 
-  const handleColumnClick = (coordinate: Coordinate) => {
-    console.log(coordinate);
+  const handleClick = (coordinate: Coordinate) => {
+    if (activeCoordinate && activeCoordinate.key !== coordinate.key) {
+      console.log('attempt move');
+    }
     setActiveCoordinate((prevActiveCoordinate) => {
       return prevActiveCoordinate?.key === coordinate.key
         ? null
@@ -25,19 +25,26 @@ function App() {
     });
   };
 
+  const handleDrag = (from: Coordinate, to: Coordinate) => {
+    console.log('handleCellDrag()', {from, to});
+  }
+
   return (
     <div className="container mx-auto">
       <h1 className="text-lg font-bold underline">
-        Ball sort game! - {win ? 'You won!' : 'Have fun'}
+        Ball sort game!
       </h1>
       <Table
         level={level}
-        onComplete={() => console.log('onComplete')}
+        onComplete={() => console.log('onComplete()')}
       >
         <Column
-          onClick={handleColumnClick}
+          onClick={handleClick}
+          onDrag={handleDrag}
         >
-          <Cell activeCoordinate={activeCoordinate} />
+          <Cell
+            activeCoordinate={activeCoordinate}
+          />
         </Column>
       </Table>
     </div>
