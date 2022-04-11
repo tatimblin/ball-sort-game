@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/ball-sort-game/static/css/main.a4702bff.css",
-    "main.js": "/ball-sort-game/static/js/main.cefca001.js",
+    "main.js": "/ball-sort-game/static/js/main.73a68351.js",
     "static/js/787.6cbc3643.chunk.js": "/ball-sort-game/static/js/787.6cbc3643.chunk.js",
     "index.html": "/ball-sort-game/index.html",
     "main.a4702bff.css.map": "/ball-sort-game/static/css/main.a4702bff.css.map",
-    "main.cefca001.js.map": "/ball-sort-game/static/js/main.cefca001.js.map",
+    "main.73a68351.js.map": "/ball-sort-game/static/js/main.73a68351.js.map",
     "787.6cbc3643.chunk.js.map": "/ball-sort-game/static/js/787.6cbc3643.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.a4702bff.css",
-    "static/js/main.cefca001.js"
+    "static/js/main.73a68351.js"
   ]
 }
