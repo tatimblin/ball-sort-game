@@ -8,6 +8,7 @@ interface moveCellResponse {
 export interface IGame {
   moveCell(level: number[][], from: number, to: number) : moveCellResponse;
   isValidMove(cell: number, col: number[]) : boolean;
+  getLevel(index: number): number[][];
 }
 
 class Game implements IGame {
@@ -47,6 +48,18 @@ class Game implements IGame {
     if (!toColumn.length) return true;
 
     return (cell === toColumn[toColumn.length - 1] && toColumn.length < 4);
+  }
+
+  /**
+   * Get a new level to play
+   * 
+   * @param {number} index
+   * @returns {number[][]}
+   */
+  getLevel(index: number): number[][] {
+    const { levels } = LevelData;
+    const safeIndex = index % (levels.length - 1);
+    return [...levels[safeIndex], [], []];
   }
 }
 

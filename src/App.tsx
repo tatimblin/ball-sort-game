@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Table, Column, Cell } from './components';
+import React, { useState, useEffect } from 'react';
+import { Table, Modal, Column, Cell } from './components';
 import { Coordinate } from './utils/Coordinate';
 import { Game } from './utils/Game';
 import './App.css';
@@ -10,14 +10,9 @@ function App() {
   const [activeCoord, setActiveCoord] = useState<Coordinate|null>();
   const [lastCoord, setLastCoord] = useState<Coordinate|null>();
   const [progress, setProgress] = useState<number>(0);
-  const [level, setLevel] = useState<number[][]>([
-    [1, 1, 1, 2],
-    [2, 2, 2, 1],
-    [3, 3, 3, 4],
-    [4, 4, 4, 3],
-    [],
-    [],
-  ]);
+  const [win, setWin] = useState<boolean>(false);
+  const [levelIndex, setLevelIndex] = useState<number>(0);
+  const [level, setLevel] = useState<number[][]>(game.getLevel(levelIndex));
 
   const handleClick = (coordinate: Coordinate) => {
     if (activeCoord && activeCoord.key !== coordinate.key) {
@@ -48,15 +43,34 @@ function App() {
     setProgress((prevProgress) => prevProgress + (100 / (level.length - 2)))
   }
 
+  const handleNextLevel = () => {
+    console.log('next!');
+    setLevel(game.getLevel(levelIndex + 1));
+    setLevelIndex((prevLevelIndex) => prevLevelIndex += 1);
+    setWin(false);
+  }
+
+  useEffect(() => {
+    if (progress === 100) setWin(true);
+  }, [progress]);
+
   return (
     <div className="container mx-auto">
       <h1 className="text-lg font-bold underline">
         Ball sort game! ({progress}%)
       </h1>
+      <Modal
+        open={win}
+        handleClose={() => setWin(false)}
+        action={handleNextLevel}
+      >
+        Congratulations, you won!
+      </Modal>
       <Table
         level={level}
       >
         <Column
+          reset={win}
           onClick={handleClick}
           onDrag={handleDrag}
           onComplete={handleColumnComplete}

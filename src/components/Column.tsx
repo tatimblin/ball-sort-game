@@ -8,10 +8,11 @@ interface Props {
   onClick?: any
   onDrag?(from: Coordinate, to?: Coordinate): void
   onComplete(coordinate?: Coordinate): void
+  reset: boolean
   children: React.ReactElement<any>
 }
 
-const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag, children, onComplete }) => {
+const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag, children, onComplete, reset }) => {
   const [complete, setComplete] = useState<boolean>(false);
 
   const cells = column.map((value, i) => {
@@ -48,6 +49,8 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
       onComplete(coordinate);
     }
   }, [column, coordinate, complete, setComplete, onComplete]);
+
+  useEffect(() => setComplete(false), [reset]);
 
   return (
     <li key={key}>
