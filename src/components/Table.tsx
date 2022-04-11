@@ -2,12 +2,11 @@ import React from "react";
 import { Coordinate } from "../utils/Coordinate";
 
 interface Props {
-  onComplete: any
   level: number[][]
   children: React.ReactElement<any>
 }
 
-const Table: React.FC<Props> = ({ level, onComplete, children }) => {
+const Table: React.FC<Props> = ({ level, children }) => {
 
   const columns = level.map((column, i) => {
     const coord = new Coordinate(i);

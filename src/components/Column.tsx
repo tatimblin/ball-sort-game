@@ -1,59 +1,71 @@
-import React from 'react';
-import classNames from 'classnames';
-import Cell from './Cell';
-import { onDropEvent, onDragOverEvent } from '../utils/Controls';
+import React, { useState, useEffect } from 'react';
+import { Coordinate } from '../utils/Coordinate';
 
 interface Props {
-  active: Boolean
-  cells: number[]
-  index: number
-  onDrop: any
-  onClick: any
-  complete: boolean
+  key?: string
+  column?: number[]
+  coordinate?: Coordinate
+  onClick?: any
+  onDrag?(from: Coordinate, to?: Coordinate): void
+  onComplete(coordinate?: Coordinate): void
+  children: React.ReactElement<any>
 }
 
-const Column: React.FC<Props> = ({
-  active,
-  cells,
-  index,
-  onDrop,
-  onClick,
-  complete,
-}) => {
+const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag, children, onComplete }) => {
+  const [complete, setComplete] = useState<boolean>(false);
 
-  const contents = (): JSX.Element[] => {
-    return cells.map((cell, row) => {
-      return (
-        <li
-          className="p-1"
-          key={`x${index}y${row}`}
-        >
-          <Cell
-            id={cell}
-            column={index}
-            draggable={row === cells.length - 1 && !complete}
-            active={active && row === cells.length - 1}
-          />
-        </li>
-      );
+  const cells = column.map((value, i) => {
+    const coord = coordinate ? new Coordinate(coordinate.x, i) : new Coordinate(0, i);
+    return React.cloneElement(children as React.ReactElement<any>, {
+      key: coord.key,
+      value,
+      coordinate: coord,
+      isDraggable: i === column.length - 1,
     });
+  });
+
+  const handleClick = () => {
+    coordinate?.setY(column.length - 1);
+    onClick(coordinate);
+  }
+
+  const onDropEvent = (e: React.DragEvent<HTMLDivElement>) => {
+    const from = JSON.parse(e.dataTransfer.getData('coordinate'));
+    onDrag && onDrag(from, coordinate);
   };
 
-  return (
-    <div
-      className="h-full"
-      onDrop={e => !complete && onDropEvent(e, index, onDrop)}
-      onDragOver={e => !complete && onDragOverEvent(e)}
-      onClick={() => !complete && onClick(index)}
-    >
-      <ul
-        className={classNames({
-          "is-complete bg-slate-200": complete,
-        }, "flex flex-col-reverse h-full")}>
-        {contents()}
-      </ul>
-    </div>
-  );
-}
+  const onDragOverEvent = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
 
-export default Column;
+  const isComplete = (array: number[]) => {
+    return array.every(item => item === array[0]) && array.length === 4;
+  }
+
+  useEffect(() => {
+    if (isComplete(column) && !complete) {
+      setComplete(true);
+      onComplete(coordinate);
+    }
+  }, [column, coordinate, complete, setComplete, onComplete]);
+
+  return (
+    <li key={key}>
+      <div
+        className="h-full"
+        onClick={() => !complete && handleClick()}
+        onDrop={e => !complete && onDropEvent(e)}
+        onDragOver={onDragOverEvent}
+      >
+        Column: ({coordinate?.key})
+        <ul className="flex flex-col-reverse">
+          {cells}
+        </ul>
+      </div>
+    </li>
+  );
+};
+
+export {
+  Column,
+}

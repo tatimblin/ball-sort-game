@@ -1,26 +1,40 @@
-import React from 'react';
 import classNames from 'classnames';
-import { onDragStartEvent } from '../utils/Controls';
+import { Coordinate } from '../utils/Coordinate';
 
 interface Props {
-  active: Boolean
-  id: number
-  column: number
-  draggable: boolean
+  key?: string
+  value?: number
+  coordinate?: Coordinate
+  activeCoordinate: Coordinate | null | undefined
+  isDraggable?: boolean
 }
 
-const Cell: React.FC<Props> = ({ active, id, column, draggable }) => {
+const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, isDraggable }) => {
+  const isActive = coordinate?.key === activeCoordinate?.key;
+
+  const onDragStartEvent = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!coordinate) return;
+
+    e.dataTransfer.setData('coordinate', JSON.stringify(coordinate));
+  }
+
   return (
-    <div
+    <li
+      key={key}
       className={classNames({
-        'font-bold': active
+        'font-bold': isActive,
       })}
-      draggable={draggable}
-      onDragStart={e => onDragStartEvent(e, column)}
     >
-      {id}
-    </div>
+      <div
+        draggable={isDraggable}
+        onDragStart={onDragStartEvent}
+      >
+        Cell: {value} ({coordinate?.key})
+      </div>
+    </li>
   );
-}
+};
 
-export default Cell;
+export {
+  Cell,
+}
