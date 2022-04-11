@@ -44,10 +44,10 @@ function App() {
   }
 
   const handleNextLevel = () => {
-    console.log('next!');
     setLevel(game.getLevel(levelIndex + 1));
     setLevelIndex((prevLevelIndex) => prevLevelIndex += 1);
     setWin(false);
+    setProgress(0);
   }
 
   useEffect(() => {
