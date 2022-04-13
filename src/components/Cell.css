@@ -1,0 +1,40 @@
+.Fill-left {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transform: skewY(30deg) translateY(-30%) scale(0.95);
+  width: 50%;
+  height: 50%;
+  top: 50%;
+  left: 0;
+  text-align: center;
+}
+
+.Fill-right {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transform: skewY(-30deg) translateY(-30%) scale(0.95);
+  width: 50%;
+  height: 50%;
+  top: 50%;
+  right: 0;
+  text-align: center;
+}
+
+.Fill-top {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transform: rotate(210deg) skewX(-30deg) translate(-3%, -6%);
+  width: 50%;
+  height: 50%;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  border-radius: 6px;
+  text-align: center;
+}

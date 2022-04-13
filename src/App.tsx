@@ -47,11 +47,13 @@ function App() {
     setLevel(game.getLevel(levelIndex + 1));
     setLevelIndex((prevLevelIndex) => prevLevelIndex += 1);
     setWin(false);
-    setProgress(0);
   }
 
   useEffect(() => {
-    if (progress === 100) setWin(true);
+    if (progress === 100) {
+      setWin(true);
+      setProgress(0);
+    }
   }, [progress]);
 
   return (

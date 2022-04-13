@@ -15,15 +15,26 @@ interface Props {
 const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag, children, onComplete, reset }) => {
   const [complete, setComplete] = useState<boolean>(false);
 
-  const cells = column.map((value, i) => {
+  
+  const cells = [];
+  for (let i = 0; i < 4; i++) {
     const coord = coordinate ? new Coordinate(coordinate.x, i) : new Coordinate(0, i);
-    return React.cloneElement(children as React.ReactElement<any>, {
-      key: coord.key,
-      value,
-      coordinate: coord,
-      isDraggable: i === column.length - 1,
-    });
-  });
+    cells.push(React.cloneElement(children as React.ReactElement<any>,
+      !isNaN(column[i])
+      ? {
+          key: coord.key,
+          value: column[i],
+          coordinate: coord,
+          isDraggable: i === column.length - 1,
+        }
+      : {
+          value: -1,  
+          coordinate: coord,
+          isDraggable: false,
+          empty: true,
+        }
+    ));
+  }
 
   const handleClick = () => {
     coordinate?.setY(column.length - 1);
