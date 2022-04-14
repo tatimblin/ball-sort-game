@@ -30,9 +30,9 @@
   flex-direction: column;
   justify-content: center;
   transform: rotate(210deg) skewX(-30deg) translate(-3%, -6%);
-  width: 50%;
-  height: 50%;
-  top: 0;
+  width: 55%;
+  height: 45%;
+  top: 2%;
   left: 25%;
   right: 25%;
   border-radius: 6px;

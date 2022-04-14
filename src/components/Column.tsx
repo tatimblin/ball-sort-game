@@ -72,7 +72,7 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
         onDragOver={onDragOverEvent}
       >
         Column: ({coordinate?.key})
-        <ul className="flex flex-col-reverse">
+        <ul className="flex flex-col-reverse mt-8">
           {cells}
         </ul>
       </div>
