@@ -36,7 +36,7 @@ const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, i
       }}
       className={classNames({
         'animate-bounce': isActive,
-        'opacity-10': empty || holding,
+        'opacity-10 pointer-events-none': empty || holding,
         'hover:scale-105 cursor-grab': isDraggable,
         'cursor-grabbing': holding,
       }, 'relative transition duration-300 ease-jelly')}
