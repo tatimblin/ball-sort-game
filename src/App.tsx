@@ -59,7 +59,7 @@ function App() {
   }, [progress]);
 
   return (
-    <div className="mx-auto min-h-screen flex items-center justify-center bg-amber-300">
+    <div className="mx-auto min-h-screen flex items-center justify-center p-4 bg-amber-300">
       <div>
         <h1 className="text-3xl text-center mb-16 text-amber-900">ball sort game</h1>
         <Table

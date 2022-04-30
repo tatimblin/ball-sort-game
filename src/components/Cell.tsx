@@ -31,11 +31,12 @@ const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, i
   return (
     <li
       key={key}
+      style={{
+        marginTop: complete ? '-60%' : '-35%'
+      }}
       className={classNames({
         'animate-bounce': isActive,
         'opacity-10': empty || holding,
-        '-mt-8': !complete,
-        '-mt-12': complete,
         'hover:scale-105 cursor-grab': isDraggable,
         'cursor-grabbing': holding,
       }, 'relative transition duration-300 ease-jelly')}

@@ -69,7 +69,7 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
   return (
     <li
       key={key}
-      className="flex flex-col w-24"
+      className="flex flex-col max-w-24"
     >
       <div
         className="h-full"
@@ -77,10 +77,7 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
         onDrop={e => !complete && onDropEvent(e)}
         onDragOver={onDragOverEvent}
       >
-        <ul className={classNames({
-          // 'mt-8': !complete,
-          // 'mt-20': complete,
-        }, 'flex flex-col-reverse')}>
+        <ul className="flex flex-col-reverse">
           {cells}
         </ul>
       </div>
