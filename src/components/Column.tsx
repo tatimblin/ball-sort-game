@@ -67,7 +67,10 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
   useEffect(() => setComplete(false), [reset]);
 
   return (
-    <li key={key}>
+    <li
+      key={key}
+      className="flex flex-col w-24"
+    >
       <div
         className="h-full"
         onClick={() => !complete && handleClick()}
@@ -75,8 +78,8 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
         onDragOver={onDragOverEvent}
       >
         <ul className={classNames({
-          'mt-8': !complete,
-          'mt-20': complete,
+          // 'mt-8': !complete,
+          // 'mt-20': complete,
         }, 'flex flex-col-reverse')}>
           {cells}
         </ul>

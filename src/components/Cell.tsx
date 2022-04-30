@@ -35,8 +35,10 @@ const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, i
         'animate-bounce': isActive,
         'opacity-10': empty || holding,
         '-mt-8': !complete,
-        '-mt-10': complete,
-      }, 'relative -mt-8 transition duration-100 ease-jelly')}
+        '-mt-12': complete,
+        'hover:scale-105 cursor-grab': isDraggable,
+        'cursor-grabbing': holding,
+      }, 'relative transition duration-300 ease-jelly')}
     >
       <div
         data-test={holding}
@@ -50,24 +52,24 @@ const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, i
         {!empty && (
           <div className={classNames({
             'opacity-0': holding,
-          }, 'absolute w-full bottom-0 z-0 aspect-square transition duration-100')}>
+          }, 'absolute w-full bottom-0 z-0 aspect-square transition')}>
             <div className={classNames({
-              'bg-green-300': value === 0,
-              'bg-indigo-300': value === 1,
-              'bg-pink-300': value === 2,
-              'bg-blue-300': value === 3,
+              'bg-indigo-300': value === 0,
+              'bg-emerald-300': value === 1,
+              'bg-fuchsia-300': value === 2,
+              'bg-rose-300': value === 3,
             }, 'Fill-left')}></div>
             <div className={classNames({
-              'bg-green-400': value === 0,
-              'bg-indigo-400': value === 1,
-              'bg-pink-400': value === 2,
-              'bg-blue-400': value === 3,
+              'bg-indigo-400': value === 0,
+              'bg-emerald-400': value === 1,
+              'bg-fuchsia-400': value === 2,
+              'bg-rose-400': value === 3,
             }, 'Fill-right')}></div>
             <div className={classNames({
-              'bg-green-500': value === 0,
-              'bg-indigo-500': value === 1,
-              'bg-pink-500': value === 2,
-              'bg-blue-500': value === 3,
+              'bg-indigo-500': value === 0,
+              'bg-emerald-500': value === 1,
+              'bg-fuchsia-500': value === 2,
+              'bg-rose-500': value === 3,
             }, 'Fill-top')}></div>
           </div>
         )}

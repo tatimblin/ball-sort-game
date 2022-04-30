@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Modal, Column, Cell } from './components';
+import classNames from 'classnames';
+import { Table, Column, Cell } from './components';
 import { Coordinate } from './utils/Coordinate';
 import { Game } from './utils/Game';
 import './App.css';
@@ -40,10 +41,12 @@ function App() {
   }
 
   const handleColumnComplete = () => {
+    if (progress === 100) return;
     setProgress((prevProgress) => prevProgress + (100 / (level.length - 2)))
   }
 
   const handleNextLevel = () => {
+    setProgress(0);
     setLevel(game.getLevel(levelIndex + 1));
     setLevelIndex((prevLevelIndex) => prevLevelIndex += 1);
     setWin(false);
@@ -52,16 +55,13 @@ function App() {
   useEffect(() => {
     if (progress === 100) {
       setWin(true);
-      setProgress(0);
     }
   }, [progress]);
 
   return (
-    <div className="container mx-auto min-h-screen flex items-center justify-center">
-      <div className="">
-        <h1 className="text-lg font-bold underline">
-          Ball sort game! ({progress}%)
-        </h1>
+    <div className="mx-auto min-h-screen flex items-center justify-center bg-amber-300">
+      <div>
+        <h1 className="text-3xl text-center mb-16 text-amber-900">ball sort game</h1>
         <Table
           level={level}
         >
@@ -76,15 +76,20 @@ function App() {
             />
           </Column>
         </Table>
+        <section className="flex justify-between items-center px-4 py-2 mt-8 rounded-lg border-4 border-amber-400 bg-amber-500 text-amber-900">
+          <span>progress: {progress}%</span>
+          <button
+            className={classNames({
+              'bg-amber-400 border-transparent text-amber-900 hover:bg-amber-300': win,
+              'border-amber-600 text-amber-600': !win,
+            }, 'px-4 py-1 rounded border transition')}
+            disabled={!win}
+            onClick={handleNextLevel}
+          >
+            next level
+          </button>
+        </section>
       </div>
-
-      <Modal
-        open={win}
-        handleClose={() => setWin(false)}
-        action={handleNextLevel}
-      >
-        Congratulations, you won!
-      </Modal>
     </div>
   );
 }

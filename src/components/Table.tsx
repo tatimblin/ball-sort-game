@@ -18,8 +18,8 @@ const Table: React.FC<Props> = ({ level, children }) => {
   });
 
   return (
-    <div className="max-w-lg mx-auto">
-      <ul className="flex gap-2">
+    <div className="max-w-lg mx-auto mt-10">
+      <ul className="flex gap-2 items-baseline">
         {columns}
       </ul>
     </div>
