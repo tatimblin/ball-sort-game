@@ -59,8 +59,8 @@ function App() {
   }, [progress]);
 
   return (
-    <div className="mx-auto min-h-screen flex items-center justify-center p-4 bg-amber-300">
-      <div>
+    <div className="mx-auto min-h-screen flex items-center justify-center bg-amber-300">
+      <div className="container">
         <h1 className="text-3xl text-center mb-16 text-amber-900">ball sort game</h1>
         <Table
           level={level}
@@ -76,7 +76,7 @@ function App() {
             />
           </Column>
         </Table>
-        <section className="flex justify-between items-center px-4 py-2 mt-8 rounded-lg border-4 border-amber-400 bg-amber-500 text-amber-900">
+        <section className="flex justify-between items-center max-w-lg mx-auto px-4 py-2 mt-8 rounded-lg border-4 border-amber-400 bg-amber-500 text-amber-900">
           <span>progress: {progress}%</span>
           <button
             className={classNames({

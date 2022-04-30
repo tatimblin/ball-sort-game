@@ -69,7 +69,7 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
   return (
     <li
       key={key}
-      className="flex flex-col max-w-24"
+      className="flex flex-col max-w-24 w-full"
     >
       <div
         className="h-full"
