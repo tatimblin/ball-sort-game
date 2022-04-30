@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import classNames from 'classnames';
 import { Coordinate } from '../utils/Coordinate';
 
 interface Props {
@@ -25,13 +26,15 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
           key: coord.key,
           value: column[i],
           coordinate: coord,
-          isDraggable: i === column.length - 1,
+          isDraggable: (i === column.length - 1) && !complete,
+          complete,
         }
       : {
           value: -1,  
           coordinate: coord,
           isDraggable: false,
           empty: true,
+          complete: false,
         }
     ));
   }
@@ -71,8 +74,10 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
         onDrop={e => !complete && onDropEvent(e)}
         onDragOver={onDragOverEvent}
       >
-        Column: ({coordinate?.key})
-        <ul className="flex flex-col-reverse mt-8">
+        <ul className={classNames({
+          'mt-8': !complete,
+          'mt-20': complete,
+        }, 'flex flex-col-reverse')}>
           {cells}
         </ul>
       </div>

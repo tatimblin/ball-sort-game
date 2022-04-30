@@ -3,7 +3,11 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      transitionTimingFunction: {
+        jelly: 'cubic-bezier(.64,0,.35,1)'
+      }
+    },
   },
   plugins: [],
 }

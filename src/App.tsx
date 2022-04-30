@@ -57,10 +57,27 @@ function App() {
   }, [progress]);
 
   return (
-    <div className="container mx-auto">
-      <h1 className="text-lg font-bold underline">
-        Ball sort game! ({progress}%)
-      </h1>
+    <div className="container mx-auto min-h-screen flex items-center justify-center">
+      <div className="">
+        <h1 className="text-lg font-bold underline">
+          Ball sort game! ({progress}%)
+        </h1>
+        <Table
+          level={level}
+        >
+          <Column
+            reset={win}
+            onClick={handleClick}
+            onDrag={handleDrag}
+            onComplete={handleColumnComplete}
+          >
+            <Cell
+              activeCoordinate={activeCoord}
+            />
+          </Column>
+        </Table>
+      </div>
+
       <Modal
         open={win}
         handleClose={() => setWin(false)}
@@ -68,20 +85,6 @@ function App() {
       >
         Congratulations, you won!
       </Modal>
-      <Table
-        level={level}
-      >
-        <Column
-          reset={win}
-          onClick={handleClick}
-          onDrag={handleDrag}
-          onComplete={handleColumnComplete}
-        >
-          <Cell
-            activeCoordinate={activeCoord}
-          />
-        </Column>
-      </Table>
     </div>
   );
 }

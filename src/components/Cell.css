@@ -3,10 +3,10 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  transform: skewY(30deg) translateY(-30%) scale(0.95);
+  transform: skewY(30deg) translateY(-30%);
   width: 50%;
   height: 50%;
-  top: 50%;
+  bottom: 4%;
   left: 0;
   text-align: center;
 }
@@ -16,10 +16,10 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  transform: skewY(-30deg) translateY(-30%) scale(0.95);
+  transform: skewY(-30deg) translateY(-30%);
   width: 50%;
   height: 50%;
-  top: 50%;
+  bottom: 4%;
   right: 0;
   text-align: center;
 }
@@ -29,12 +29,10 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  transform: rotate(210deg) skewX(-30deg) translate(-3%, -6%);
-  width: 55%;
-  height: 45%;
-  top: 2%;
-  left: 25%;
-  right: 25%;
-  border-radius: 6px;
+  transform: rotate(210deg) skewX(-30deg);
+  transform-origin: 60% 30%;
+  width: 58%;
+  height: 50%;
+  top: 4%;
   text-align: center;
 }

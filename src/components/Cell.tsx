@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import classNames from 'classnames';
 import { Coordinate } from '../utils/Coordinate';
 import './Cell.css';
@@ -9,31 +10,47 @@ interface Props {
   activeCoordinate: Coordinate | null | undefined
   isDraggable?: boolean
   empty?: boolean
+  complete?: boolean
 }
 
-const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, isDraggable, empty }) => {
+const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, isDraggable, empty, complete }) => {
   const isActive = coordinate?.key === activeCoordinate?.key;
+  const [holding, setHolding] = useState<boolean>(false);
 
   const onDragStartEvent = (e: React.DragEvent<HTMLDivElement>) => {
     if (!coordinate) return;
 
+    setHolding(true);
     e.dataTransfer.setData('coordinate', JSON.stringify(coordinate));
+  }
+
+  const onDragEndEvent = (e: React.DragEvent<HTMLDivElement>) => {
+    setHolding(false);
   }
 
   return (
     <li
       key={key}
       className={classNames({
-        'font-bold': isActive,
-        'opacity-10': empty,
-      }, 'relative -mt-8')}
+        'animate-bounce': isActive,
+        'opacity-10': empty || holding,
+        '-mt-8': !complete,
+        '-mt-10': complete,
+      }, 'relative -mt-8 transition duration-100 ease-jelly')}
     >
       <div
+        data-test={holding}
         draggable={isDraggable}
         onDragStart={onDragStartEvent}
+        onDragEnd={onDragEndEvent}
+        className={classNames({
+          'scale-90': isActive,
+        }, 'transition')}
       >
         {!empty && (
-          <div className="z-0">
+          <div className={classNames({
+            'opacity-0': holding,
+          }, 'absolute w-full bottom-0 z-0 aspect-square transition duration-100')}>
             <div className={classNames({
               'bg-green-300': value === 0,
               'bg-indigo-300': value === 1,
