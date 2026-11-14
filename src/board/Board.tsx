@@ -252,14 +252,14 @@ export function Board(props: BoardProps) {
           className={dropped ? 'bsg-drop' : undefined} style={dropped ? { ['--bsg-dy' as string]: `${f(-LIFT * s)}px` } : undefined} />,
       );
     });
-    // Sorted: a dimension line up the column's height, in the gap to its left
-    // (its 4/4 is on the ground label).
-    if (sorted) {
+    // Sorted, on wide frames: a dimension line up the column's height, in the gap to its left
+    // (its 4/4 is on the ground label). Phones make do with the block and the label.
+    if (sorted && !narrow) {
       const [x, y0] = project(l, i, j + 1, 0);
       const y1 = project(l, i, j + 1, HEIGHT)[1];
       const dx = x - Math.max(5, (l.advance - 2 * C * s) / 2);
       parts.push(
-        <g key="dim" stroke={INK} strokeWidth="0.8">
+        <g key="dim" className="bsg-dim" stroke={INK} strokeWidth="0.8">
           <line x1={f(dx)} y1={f(y0)} x2={f(dx)} y2={f(y1)} />
           <line x1={f(dx - 3.5)} y1={f(y0 + 2)} x2={f(dx + 3.5)} y2={f(y0 - 2)} />
           <line x1={f(dx - 3.5)} y1={f(y1 + 2)} x2={f(dx + 3.5)} y2={f(y1 - 2)} />
