@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import classNames from 'classnames';
+import React from 'react';
 import { Coordinate } from '../utils/Coordinate';
+import { HEIGHT, isSorted } from '../utils/rules';
 
 interface Props {
   key?: string
@@ -8,17 +8,14 @@ interface Props {
   coordinate?: Coordinate
   onClick?: any
   onDrag?(from: Coordinate, to?: Coordinate): void
-  onComplete(coordinate?: Coordinate): void
-  reset: boolean
   children: React.ReactElement<any>
 }
 
-const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag, children, onComplete, reset }) => {
-  const [complete, setComplete] = useState<boolean>(false);
+const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag, children }) => {
+  const complete = isSorted(column);
 
-  
   const cells = [];
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < HEIGHT; i++) {
     const coord = coordinate ? new Coordinate(coordinate.x, i) : new Coordinate(0, i);
     cells.push(React.cloneElement(children as React.ReactElement<any>,
       !isNaN(column[i])
@@ -30,7 +27,8 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
           complete,
         }
       : {
-          value: -1,  
+          key: coord.key,
+          value: -1,
           coordinate: coord,
           isDraggable: false,
           empty: true,
@@ -39,32 +37,10 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
     ));
   }
 
-  const handleClick = () => {
-    coordinate?.setY(column.length - 1);
-    onClick(coordinate);
-  }
-
   const onDropEvent = (e: React.DragEvent<HTMLDivElement>) => {
     const from = JSON.parse(e.dataTransfer.getData('coordinate'));
     onDrag && onDrag(from, coordinate);
   };
-
-  const onDragOverEvent = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
-  const isComplete = (array: number[]) => {
-    return array.every(item => item === array[0]) && array.length === 4;
-  }
-
-  useEffect(() => {
-    if (isComplete(column) && !complete) {
-      setComplete(true);
-      onComplete(coordinate);
-    }
-  }, [column, coordinate, complete, setComplete, onComplete]);
-
-  useEffect(() => setComplete(false), [reset]);
 
   return (
     <li
@@ -73,9 +49,9 @@ const Column: React.FC<Props> = ({ key, column = [], coordinate, onClick, onDrag
     >
       <div
         className="h-full"
-        onClick={() => !complete && handleClick()}
-        onDrop={e => !complete && onDropEvent(e)}
-        onDragOver={onDragOverEvent}
+        onClick={() => onClick(coordinate)}
+        onDrop={onDropEvent}
+        onDragOver={(e) => e.preventDefault()}
       >
         <ul className="flex flex-col-reverse">
           {cells}

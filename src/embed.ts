@@ -7,12 +7,15 @@ import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
 import css from './index.css?inline';
+import { isDifficulty, type Difficulty } from './utils/generator';
 
 export interface MountOptions {
   assetBase?: string;
   /** The root's touch-action. `manipulation` (the default) lets a finger
    *  scroll the game when `el` is too short for it and stops double-tap zoom. */
   touchAction?: string;
+  /** The tier to start at: 'easy', 'medium' (the default), 'hard' or 'expert'. */
+  difficulty?: Difficulty;
 }
 
 export interface Handle {
@@ -47,7 +50,8 @@ export function mount(el: HTMLElement, opts: MountOptions = {}): Handle {
   } finally {
     document.addEventListener = addEventListener;
   }
-  root.render(createElement(App));
+  const difficulty = isDifficulty(opts.difficulty) ? opts.difficulty : undefined;
+  root.render(createElement(App, { difficulty }));
 
   let live = true;
   return {

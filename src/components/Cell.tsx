@@ -58,18 +58,30 @@ const Cell: React.FC<Props> = ({ key, value = 0, coordinate, activeCoordinate, i
               'bg-emerald-300': value === 1,
               'bg-fuchsia-300': value === 2,
               'bg-rose-300': value === 3,
+              'bg-sky-300': value === 4,
+              'bg-lime-300': value === 5,
+              'bg-orange-300': value === 6,
+              'bg-slate-300': value === 7,
             }, 'Fill-left')}></div>
             <div className={classNames({
               'bg-indigo-400': value === 0,
               'bg-emerald-400': value === 1,
               'bg-fuchsia-400': value === 2,
               'bg-rose-400': value === 3,
+              'bg-sky-400': value === 4,
+              'bg-lime-400': value === 5,
+              'bg-orange-400': value === 6,
+              'bg-slate-400': value === 7,
             }, 'Fill-right')}></div>
             <div className={classNames({
               'bg-indigo-500': value === 0,
               'bg-emerald-500': value === 1,
               'bg-fuchsia-500': value === 2,
               'bg-rose-500': value === 3,
+              'bg-sky-500': value === 4,
+              'bg-lime-500': value === 5,
+              'bg-orange-500': value === 6,
+              'bg-slate-500': value === 7,
             }, 'Fill-top')}></div>
           </div>
         )}
