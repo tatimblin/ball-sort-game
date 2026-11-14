@@ -3,9 +3,8 @@
 @tailwind base;
 
 /* What preflight leaves to browser defaults a host page can restyle
-   (`div { margin: 2em }`). `.bsg-root :is(…)` outweighs bare element rules
-   and still loses to the utilities. */
-:is(div, span, section, h1, ul, ol, li, button, svg) {
+   (`div { margin: 2em }`). `.bsg-root :is(…)` outweighs bare element rules. */
+:is(div, span, section, header, h1, p, ul, li, button, svg, b, i, em) {
   margin: 0;
   padding: 0;
   font: inherit;
@@ -19,8 +18,8 @@
   list-style: none;
 }
 
-/* The cube outlines are drawn in the SVG default, black. */
-:is(svg, path) {
+/* Shapes carry their own fill and stroke attributes. */
+:is(svg) {
   fill: initial;
   stroke: none;
 }
@@ -28,19 +27,24 @@
 /* Preflight's `html` and `body` rules both land here, and its body rule
    sets `line-height: inherit`, so the root states its own. */
 .bsg-root {
+  --ink: #151515;
+  --mute: #8a8a86;
+  --paper: #f6f6f3;
+  --rule: #d7d7d2;
+  --mono: Menlo, 'SFMono-Regular', Consolas, 'Courier New', monospace;
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  line-height: 1.5;
+  line-height: 1.4;
   text-align: left;
   text-transform: none;
   letter-spacing: normal;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  color: var(--ink);
+  background: #ebebe8;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Taps select and move cubes: no grey flash, no text selection or
+  /* Taps lift and drop cubes: no grey flash, no text selection or
      long-press callout. */
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
@@ -51,41 +55,475 @@
 @tailwind components;
 @tailwind utilities;
 
-.Fill-left {
-  position: absolute;
+/* ── page ─────────────────────────────────────────────── */
+.bsg-app {
+  /* Fill the host; below this the host's own box scrolls. */
+  height: 100%;
+  min-height: 600px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  transform: skewY(30deg) translateY(-30%);
-  width: 50%;
-  height: 50%;
-  bottom: 4%;
-  left: 0;
+  align-items: center;
+  /* Clear of the host's info button in the top-left corner. */
+  padding: 20px 28px 24px;
+  gap: 16px;
+  outline: none;
+}
+.bsg-head {
   text-align: center;
+  min-height: 56px;
+}
+.bsg-head h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.bsg-head p {
+  font-size: 12.5px;
+  color: #6d6d69;
+  margin-top: 6px;
 }
 
-.Fill-right {
+/* ── card ─────────────────────────────────────────────── */
+.bsg-card {
+  position: relative;
+  flex: 1 1 0;
+  width: 100%;
+  max-width: 1120px;
+  min-height: 0;
+  max-height: 680px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 22px;
+  padding: 22px;
+  clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 0 100%);
+}
+.bsg-card::after {
+  content: '';
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  transform: skewY(-30deg) translateY(-30%);
-  width: 50%;
-  height: 50%;
-  bottom: 4%;
   right: 0;
-  text-align: center;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(225deg, transparent 50%, var(--rule) 50%, var(--rule) calc(50% + 1px), #fbfbf9 calc(50% + 1px));
 }
-
-.Fill-top {
-  position: absolute;
+.bsg-side {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  font-family: var(--mono);
+}
+.bsg-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+.bsg-icon {
+  display: grid;
+  grid-template-columns: repeat(4, 3px);
+  gap: 1px;
+}
+.bsg-icon i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  background: var(--ink);
+}
+.bsg-icon i.o {
+  background: transparent;
+}
+.bsg-blurb {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #333;
+}
+
+/* EASY · MEDIUM · HARD · EXPERT */
+.bsg-diff {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+}
+.bsg-diff button {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  padding: 8px 0;
+  min-height: 34px;
+  background: transparent;
+  color: #55554f;
+  cursor: pointer;
+}
+.bsg-diff button + button {
+  border-left: 1px dashed #b5b5b0;
+}
+.bsg-diff button.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* One row of fill icons: outlined until that fill is sorted. */
+.bsg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.bsg-legend span,
+.bsg-legend svg {
+  display: block;
+  flex: none;
+}
+
+.bsg-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  font-size: 10.5px;
+  color: #8a8a85;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  letter-spacing: 0.03em;
+  white-space: pre;
+}
+.bsg-log div {
+  color: #444;
+  margin-bottom: 2px;
+}
+.bsg-log .cur {
+  color: var(--ink);
+}
+.bsg-log .bad {
+  color: var(--ink);
+  text-decoration: underline dashed #9a9a95;
+  text-underline-offset: 3px;
+}
+
+.bsg-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: #77776f;
+  padding: 7px 8px;
+  border: 1px dashed #c3c3be;
+}
+
+.bsg-stats {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+.bsg-stats .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-top: 1px dashed #c3c3be;
+}
+.bsg-stats em {
+  font-style: normal;
+  color: var(--mute);
+}
+.bsg-stats .bsg-lvl {
+  display: none;
+}
+.bsg-bar {
+  position: relative;
+  height: 12px;
+  margin: 8px 0 4px;
+  border: 1px solid var(--ink);
+  background: repeating-linear-gradient(90deg, transparent 0 3px, #cfcfca 3px 4px);
+}
+.bsg-bar b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ink);
+  transition: width 0.25s ease-out;
+}
+.bsg-won .bsg-bar {
+  background: var(--ink);
+}
+.bsg-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--mute);
+}
+
+.bsg-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.bsg-actions .bsg-next {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+.bsg-actions button,
+.bsg-next {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  min-height: 36px;
+  background: transparent;
+  border: 1px solid #8f8f8a;
+  border-radius: 3px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.bsg-actions button:disabled {
+  border-style: dashed;
+  border-color: #c3c3be;
+  color: #a5a5a0;
+  cursor: default;
+}
+.bsg-next {
+  font-size: 12px;
+  min-height: 42px;
+  border: 1px dashed #a5a5a0;
+  color: #9a9a95;
+  cursor: default;
+}
+.bsg-won .bsg-next {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+}
+:is(.bsg-diff button, .bsg-actions button, .bsg-next):focus-visible {
+  outline: 1.5px dashed var(--ink);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .bsg-actions button:not(:disabled):hover,
+  .bsg-diff button:not(.on):hover {
+    background: #ebebe6;
+  }
+}
+
+/* ── board ────────────────────────────────────────────── */
+.bsg-frame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--rule);
+  background: #fafaf8;
+  overflow: hidden;
+}
+.bsg-board {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: visible;
+}
+.bsg-col {
+  position: absolute;
+  display: block;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  outline: none;
+}
+.bsg-dragging,
+.bsg-dragging .bsg-col {
+  cursor: grabbing;
+}
+.bsg-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Motion: a lift rises, a refused drop shakes; moves between columns fly
+   (Board.tsx animates them). Keyframe names are global, so they carry the
+   game's prefix. */
+.bsg-lift {
+  animation: bsg-rise 0.16s ease-out;
+}
+@keyframes bsg-rise {
+  from {
+    transform: translateY(var(--bsg-dy));
+  }
+}
+.bsg-shake {
+  animation: bsg-shake 0.28s ease-in-out;
+}
+@keyframes bsg-shake {
+  20%, 60% {
+    transform: translateX(-3px);
+  }
+  40%, 80% {
+    transform: translateX(3px);
+  }
+}
+.bsg-flash {
+  animation: bsg-flash 1.2s ease-out forwards;
+}
+@keyframes bsg-flash {
+  0%, 60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.bsg-fade {
+  animation: bsg-fade 0.16s ease-out;
+}
+@keyframes bsg-fade {
+  from {
+    opacity: 0;
+  }
+}
+/* Sorting merges four cubes into one block: their seams fade away. */
+.bsg-seam {
+  animation: bsg-flash 0.7s ease-in forwards;
+}
+/* Hover or focus floats the top cube a little over a faint shadow. */
+.bsg-float {
+  transition: transform 0.14s ease-out;
+}
+.bsg-shadow {
+  opacity: 0;
+  transition: opacity 0.14s ease-out;
+}
+.bsg-shadow.on {
+  opacity: 0.12;
+}
+/* A lifted cube bobs gently while it waits. */
+.bsg-bob {
+  animation: bsg-bob 1.6s ease-in-out infinite alternate;
+}
+@keyframes bsg-bob {
+  from {
+    transform: translateY(-2px);
+  }
+  to {
+    transform: translateY(2px);
+  }
+}
+/* Where the lifted cube would land. */
+.bsg-preview {
+  opacity: 0.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bsg-lift,
+  .bsg-shake,
+  .bsg-fade,
+  .bsg-bob,
+  .bsg-float,
+  .bsg-shadow,
+  .bsg-bar b {
+    animation: none;
+    transition: none;
+  }
+  /* The refused-drop ✗ stays until the next action instead of fading. */
+  .bsg-flash {
+    animation: none;
+  }
+  /* A sorted column is one block at once. */
+  .bsg-seam {
+    display: none;
+  }
+}
+
+/* ── narrow (phones): one column, board first, compact panel ── */
+.bsg-narrow {
+  min-height: 620px;
+  padding: 4px 12px 12px;
+  gap: 4px;
+}
+.bsg-narrow .bsg-head p,
+.bsg-narrow .bsg-hd,
+.bsg-narrow .bsg-blurb,
+.bsg-narrow .bsg-log,
+.bsg-narrow .bsg-keys,
+.bsg-narrow .bsg-ticks,
+.bsg-narrow .bsg-card::after {
+  display: none;
+}
+.bsg-narrow .bsg-head {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  transform: rotate(210deg) skewX(-30deg);
-  transform-origin: 60% 30%;
-  width: 58%;
-  height: 50%;
-  top: 4%;
-  text-align: center;
+}
+.bsg-narrow .bsg-head h1 {
+  font-size: 28px;
+}
+.bsg-narrow .bsg-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: none;
+  gap: 10px;
+  padding: 12px;
+  clip-path: none;
+}
+.bsg-narrow .bsg-side {
+  display: contents;
+}
+.bsg-narrow .bsg-diff {
+  order: 0;
+}
+.bsg-narrow .bsg-diff button {
+  min-height: 40px;
+}
+.bsg-narrow .bsg-frame {
+  order: 1;
+  flex: 1 1 0;
+  min-height: 300px;
+}
+.bsg-narrow .bsg-legend {
+  order: 2;
+  justify-content: center;
+  gap: 4px 14px;
+}
+.bsg-narrow .bsg-stats {
+  order: 3;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: space-between;
+  column-gap: 8px;
+  font-size: 10.5px;
+}
+.bsg-narrow .bsg-stats .row {
+  border: 0;
+  padding: 0;
+  gap: 6px;
+}
+.bsg-narrow .bsg-stats .bsg-lvl {
+  display: flex;
+}
+.bsg-narrow .bsg-stats .row:nth-child(4) {
+  display: none;
+}
+.bsg-narrow .bsg-bar {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+}
+.bsg-narrow .bsg-actions {
+  order: 4;
+  grid-template-columns: repeat(3, 1fr) 1.3fr;
+}
+.bsg-narrow .bsg-actions button {
+  min-height: 44px;
+}
+.bsg-narrow .bsg-actions .bsg-next {
+  grid-column: auto;
+  margin-top: 0;
 }

@@ -1,8 +1,14 @@
 # ball sort game
 
-A puzzle: tap a column to pick up its top cube, tap another to drop it there
-(or drag it, with a mouse). A cube lands only on an empty column or on its own
-color, four to a column. Stack every color in its own column to win the level.
+A puzzle of isometric cubes, drawn as a blueprint: tap or click a column to
+lift its top cube, then tap another to drop it there (or drag it with a mouse).
+A cube lands only on an empty column or on its own fill, four to a column. Sort
+every fill into its own column to win the level. Fills are patterns (solid,
+hatch, dot, cross, ink, white, check, rule), not colours.
+
+Keyboard, while the game has focus: ← → (or Tab) move between columns, Enter
+or Space lifts and drops, 1–9 and 0 pick a column, Esc cancels a lift, U or
+Ctrl/Cmd+Z undoes, R restarts and N deals a new level.
 
 Levels are dealt from a seed (`src/utils/generator.ts`) at four difficulties,
 each checked solvable by an A* solver (`src/utils/solver.ts`):
@@ -16,7 +22,8 @@ each checked solvable by an A* solver (`src/utils/solver.ts`):
 
 Harder tiers also mix deeper (medium and hard deal no column with three of a
 fill in a row, expert none with two) and must need at least the fewest moves
-shown. Winning deals the next seed at the same difficulty.
+shown. Winning deals the next seed at the same difficulty; changing difficulty
+or asking for a new level deals a random seed.
 
 Play it at https://tatimblin.github.io/ball-sort-game/.
 
