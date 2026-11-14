@@ -146,10 +146,10 @@ export function columnAt(l: Layout, x: number, y: number): number | null {
   return null;
 }
 
-/** The visible faces of a unit cube at (i, j, k). */
-export function cubeFaces(l: Pick<Layout, 's' | 'ox' | 'oy'>, i: number, j: number, k: number) {
+/** The visible faces of a box one cube wide and `dk` cubes tall at (i, j, k). */
+export function cubeFaces(l: Pick<Layout, 's' | 'ox' | 'oy'>, i: number, j: number, k: number, dk = 1) {
   const P = (a: number, b: number, c: number) => project(l, a, b, c);
-  const t = k + 1;
+  const t = k + dk;
   return {
     top: [P(i, j, t), P(i + 1, j, t), P(i + 1, j + 1, t), P(i, j + 1, t)],
     left: [P(i, j + 1, t), P(i + 1, j + 1, t), P(i + 1, j + 1, k), P(i, j + 1, k)],

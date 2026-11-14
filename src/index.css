@@ -418,6 +418,10 @@
     opacity: 0;
   }
 }
+/* Sorting merges four cubes into one block: their seams fade away. */
+.bsg-seam {
+  animation: bsg-flash 0.7s ease-in forwards;
+}
 @media (prefers-reduced-motion: reduce) {
   .bsg-lift,
   .bsg-drop,
@@ -430,6 +434,10 @@
   /* The refused-drop ✗ stays until the next action instead of fading. */
   .bsg-flash {
     animation: none;
+  }
+  /* A sorted column is one block at once. */
+  .bsg-seam {
+    display: none;
   }
 }
 
