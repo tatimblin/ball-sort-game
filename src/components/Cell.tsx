@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import classNames from 'classnames';
 import { Coordinate } from '../utils/Coordinate';
-import './Cell.css';
 
 interface Props {
   key?: string

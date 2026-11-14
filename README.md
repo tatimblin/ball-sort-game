@@ -1,46 +1,36 @@
-# Getting Started with Create React App
+# ball sort game
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A puzzle: tap a column to pick up its top cube, tap another to drop it there
+(or drag it, with a mouse). A cube lands only on an empty column or on its own
+color, four to a column. Stack every color in its own column to win the level.
 
-## Available Scripts
+Play it at https://tatimblin.github.io/ball-sort-game/.
 
-In the project directory, you can run:
+## develop
 
-### `npm start`
+```sh
+npm install
+npm run dev     # the page, with hot reload
+npm run check   # type check
+npm test        # unit tests (vitest)
+npm run build   # the page → build/
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## embed
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+The game also ships as one ES module, `dist/index.js`, which
+[tristantimblin.dev](https://tristantimblin.dev/) loads from GitHub Pages:
 
-### `npm test`
+```js
+import { mount } from "https://tatimblin.github.io/ball-sort-game/dist/index.js";
+const { destroy } = mount(el, { assetBase }); // fills `el`; destroy() removes it
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Its styles (Tailwind's preflight included) are scoped under `.bsg-root` and
+injected beside the game, so they neither leak onto the host page nor are
+broken by its element rules. `touchAction` (default `manipulation`) sets the
+root's `touch-action`.
 
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+`npm run build:embed` builds it locally. To release, bump `version`, merge,
+and tag `v<version>` on master: the Pages workflow builds the page and the
+embed and deploys both.

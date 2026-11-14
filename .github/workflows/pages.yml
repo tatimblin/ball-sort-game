@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+# Every v* tag publishes https://tatimblin.github.io/ball-sort-game/: the
+# standalone page, and dist/index.js beside it, the embed tristantimblin.dev
+# imports. Pages serves one release at an unversioned URL, so a new tag changes
+# the live embed. A manual run can redeploy any tag.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag to publish, e.g. v0.1.0"
+        required: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+
+      - name: Build the page and the embed
+        env:
+          BASE_PATH: "/${{ github.event.repository.name }}/"
+        run: |
+          npm run build
+          npm run build:embed
+          cp -R dist build/dist
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/
+      - id: deployment
+        uses: actions/deploy-pages@v4
