@@ -1,0 +1,359 @@
+// The board: an SVG drawing of the columns in the blueprint style, with a
+// transparent button over each column for taps, clicks and keyboard focus,
+// and mouse drag-and-drop on top. Everything is drawn from the level each
+// render; nothing here holds game state.
+import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { HEIGHT, canMove, isSorted, type Level } from '../utils/rules';
+import type { LogEntry } from '../utils/state';
+import { FILLS, FACES, FillDefs, INK, patternId } from './fills';
+import { C, GRID, LIFT, columnAt, cubeFaces, f, gridPath, hitRect, layoutBoard, project, pts, type Layout } from './iso';
+
+export interface BoardProps {
+  idPrefix: string;
+  level: Level;
+  selected: number | null;
+  lastEntry: LogEntry | undefined;
+  errors: number;
+  won: boolean;
+  narrow: boolean;
+  onTap(column: number): void;
+  onMove(from: number, to: number): void;
+  onCancel(): void;
+  /** The column buttons, for the app's keyboard handling to focus. */
+  buttons: React.MutableRefObject<(HTMLButtonElement | null)[]>;
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const MONO = "Menlo, 'SFMono-Regular', Consolas, 'Courier New', monospace";
+
+interface Drag {
+  from: number;
+  x0: number;
+  y0: number;
+  dx: number;
+  dy: number;
+  over: number | null;
+  active: boolean;
+  pointerId: number;
+}
+
+function Cube({ l, i, j, k, fill, prefix, dashed, weight = 1, className, style }: {
+  l: Layout; i: number; j: number; k: number; fill: number; prefix: string;
+  dashed?: boolean; weight?: number; className?: string; style?: CSSProperties;
+}) {
+  const faces = cubeFaces(l, i, j, k);
+  const { tone, pattern } = FILLS[fill];
+  const stroke = { fill: 'none', stroke: INK, strokeWidth: weight, strokeLinejoin: 'round' as const, strokeDasharray: dashed ? '3 2.5' : undefined };
+  return (
+    <g className={className} style={style}>
+      {FACES.map((face) => (
+        <polygon key={face} points={pts(faces[face])} fill={tone[face]} />
+      ))}
+      {pattern && FACES.map((face) => (
+        <polygon key={`p${face}`} points={pts(faces[face])} fill={`url(#${patternId(prefix, fill, face)})`} />
+      ))}
+      {FACES.map((face) => (
+        <polygon key={`o${face}`} points={pts(faces[face])} {...stroke} />
+      ))}
+    </g>
+  );
+}
+
+function Ghost({ l, i, j, k, strong }: { l: Layout; i: number; j: number; k: number; strong?: boolean }) {
+  const b = cubeFaces(l, i, j, k);
+  return (
+    <g>
+      <polygon points={pts(b.hull)} fill="none" stroke={strong ? '#5a5a56' : '#b9b9b4'} strokeWidth={strong ? 1 : 0.8} strokeDasharray="2 3" />
+      <line x1={f(b.top[2][0])} y1={f(b.top[2][1])} x2={f(b.left[2][0])} y2={f(b.left[2][1])} stroke="#cfcfca" strokeWidth="0.8" strokeDasharray="2 3" />
+    </g>
+  );
+}
+
+export function Board(props: BoardProps) {
+  const { idPrefix: P, level, selected, lastEntry, errors, won, narrow, buttons } = props;
+  const frame = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [focused, setFocused] = useState<number | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const suppressClick = useRef(false);
+
+  useLayoutEffect(() => {
+    const el = frame.current!;
+    const measure = () => setSize({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const n = level.length;
+  const { w: W, h: H } = size;
+  const l = layoutBoard(n, W || 600, H || 400, { pad: narrow ? 14 : 34, maxS: narrow ? 44 : 50, narrow });
+  const s = l.s;
+  // A grid line every half cube, or every cube when that would crowd a phone.
+  const gridStep = GRID * s >= 14 ? GRID : 1;
+  const fills = [...new Set(level.flat())].sort((a, b) => a - b);
+  const patternScale = Math.min(1.15, Math.max(0.7, s / 44));
+  const lift = drag?.active ? drag.from : selected;
+  const labelSize = Math.min(12.5, Math.max(10, 0.3 * s));
+
+  const local = (e: { clientX: number; clientY: number }) => {
+    const r = frame.current!.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top] as const;
+  };
+
+  // Mouse (and pen) drag. A press only becomes a drag once it moves, so a
+  // plain click still reaches the column button underneath. Touch keeps
+  // tap/tap and the page's own scrolling.
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    suppressClick.current = false;
+    if (e.pointerType === 'touch' || e.button !== 0 || won) return;
+    const [x, y] = local(e);
+    const c = columnAt(l, x, y);
+    if (c === null || !level[c].length || isSorted(level[c])) return;
+    setDrag({ from: c, x0: x, y0: y, dx: 0, dy: 0, over: c, active: false, pointerId: e.pointerId });
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const [x, y] = local(e);
+    const dx = x - drag.x0;
+    const dy = y - drag.y0;
+    const active = drag.active || Math.hypot(dx, dy) > 6;
+    if (active && !drag.active) {
+      frame.current!.setPointerCapture(e.pointerId);
+      if (selected !== null) props.onCancel();
+    }
+    setDrag({ ...drag, dx, dy, active, over: columnAt(l, x, y) });
+  };
+  const endDrag = (e: ReactPointerEvent<HTMLDivElement>, drop: boolean) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    if (drag.active) {
+      suppressClick.current = true;
+      const [x, y] = local(e);
+      const to = columnAt(l, x, y);
+      // Dropped on another column: move, or log why not and snap back.
+      if (drop && to !== null && to !== drag.from) props.onMove(drag.from, to);
+    }
+    setDrag(null);
+  };
+
+  const invalidAt = lastEntry?.kind === 'invalid' ? lastEntry.to : null;
+  const droppedAt = lastEntry?.kind === 'move' ? lastEntry.to : null;
+  const dragging = drag?.active ? drag : null;
+
+  const columns = level.map((col, c) => {
+    const { i, j } = l.places[c];
+    const sorted = isSorted(col);
+    const target = lift !== null && lift !== c && canMove(level, lift, c);
+    const dim = dragging && dragging.from !== c && !target;
+    const parts = [];
+    // Footprint pad on the grid, darker where the lifted cube can land.
+    parts.push(
+      <polygon key="pad" points={pts([project(l, i - GRID, j - GRID), project(l, i + 1 + GRID, j - GRID), project(l, i + 1 + GRID, j + 1 + GRID), project(l, i - GRID, j + 1 + GRID)])}
+        fill="none" stroke={target ? INK : '#c4c4bf'} strokeWidth={target ? 1 : 0.8} strokeDasharray={target ? '4 3' : '2 2'} />,
+    );
+    for (let k = col.length; k < HEIGHT; k++) parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} strong={target && k === col.length} />);
+    col.forEach((v, k) => {
+      const top = k === col.length - 1;
+      if (top && lift === c) {
+        parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} />);
+        if (dragging) return;
+        // Dotted construction lines from the slot up to the lifted cube.
+        for (const [a, b] of [[i, j + 1], [i + 1, j + 1], [i + 1, j]] as const) {
+          const p = project(l, a, b, k + 1);
+          const q = project(l, a, b, k + 1 + LIFT);
+          parts.push(<line key={`cl${a}${b}`} x1={f(p[0])} y1={f(p[1])} x2={f(q[0])} y2={f(q[1])} stroke={INK} strokeWidth="0.7" strokeDasharray="1.5 2.5" />);
+        }
+        parts.push(
+          <Cube key={`lift${c}`} l={l} i={i} j={j} k={k + LIFT} fill={v} prefix={P} dashed weight={1.2}
+            className="bsg-lift" style={{ ['--bsg-dy' as string]: `${f(LIFT * s)}px` }} />,
+        );
+        return;
+      }
+      const dropped = top && droppedAt === c;
+      parts.push(
+        <Cube key={`c${k}${dropped ? 'd' : ''}`} l={l} i={i} j={j} k={k} fill={v} prefix={P} weight={sorted ? 1.4 : 1}
+          className={dropped ? 'bsg-drop' : undefined} style={dropped ? { ['--bsg-dy' as string]: `${f(-LIFT * s)}px` } : undefined} />,
+      );
+    });
+    // Sorted: a dimension line up the column's height, in the gap to its left
+    // (its 4/4 is on the ground label).
+    if (sorted) {
+      const [x, y0] = project(l, i, j + 1, 0);
+      const y1 = project(l, i, j + 1, HEIGHT)[1];
+      const dx = x - Math.max(5, (l.advance - 2 * C * s) / 2);
+      parts.push(
+        <g key="dim" stroke={INK} strokeWidth="0.8">
+          <line x1={f(dx)} y1={f(y0)} x2={f(dx)} y2={f(y1)} />
+          <line x1={f(dx - 3.5)} y1={f(y0 + 2)} x2={f(dx + 3.5)} y2={f(y0 - 2)} />
+          <line x1={f(dx - 3.5)} y1={f(y1 + 2)} x2={f(dx + 3.5)} y2={f(y1 - 2)} />
+        </g>,
+      );
+    }
+    // Labels: COL 0n and n/4, with ✓ once sorted.
+    const name = `COL ${pad2(c + 1)}`;
+    const count = `${col.length}/${HEIGHT}${sorted ? ' ✓' : ''}`;
+    if (l.groundLabels) {
+      const m = (a: number, b: number) => {
+        const [x, y] = project(l, a, b);
+        return `matrix(${f(Math.cos(Math.PI / 6))},0.5,${f(-Math.cos(Math.PI / 6))},0.5,${f(x)},${f(y)})`;
+      };
+      const fs = f(Math.min(12, Math.max(9.5, 0.27 * s)));
+      parts.push(
+        <text key="ln" transform={m(i - 0.05, j + 1.75)} fontFamily={MONO} fontSize={fs} fill={sorted ? INK : '#6e6e6a'} letterSpacing="0.4">{name}</text>,
+        <text key="lc" transform={m(i - 0.05, j + 2.2)} fontFamily={MONO} fontSize={fs} fill={sorted ? INK : '#9a9a95'} letterSpacing="0.4">{count}</text>,
+      );
+    } else {
+      const [x, y] = project(l, i + 1, j + 1);
+      parts.push(
+        <text key="ln" x={f(x)} y={f(y + 0.55 * s + 3)} fontFamily={MONO} fontSize={labelSize} textAnchor="middle" fill={sorted ? INK : '#6e6e6a'}>{`C${pad2(c + 1)}`}</text>,
+        <text key="lc" x={f(x)} y={f(y + 0.55 * s + 3 + labelSize * 1.2)} fontFamily={MONO} fontSize={labelSize} textAnchor="middle" fill={sorted ? INK : '#9a9a95'}>{count}</text>,
+      );
+    }
+    // A refused drop: shake the column and mark it.
+    const refused = invalidAt === c;
+    return (
+      <g key={`col${c}${refused ? `e${errors}` : ''}`} className={refused ? 'bsg-shake' : undefined} opacity={dim ? 0.35 : 1}>
+        {parts}
+      </g>
+    );
+  });
+
+  // Lanes: dashed construction lines along the diagonal row, on grid lines.
+  const lanes = [];
+  if (l.kind === 'diagonal') {
+    const i0 = -1;
+    const i1 = l.places[n - 1].i + 2;
+    for (const [jj, dash, color] of [[-GRID, '4 4', '#c9c9c4'], [1 + GRID, '4 4', '#c9c9c4'], [0.5, '10 3 2 3', '#d8d8d3']] as const) {
+      const a = project(l, i0, jj);
+      const b = project(l, i1, jj);
+      lanes.push(<line key={`lane${jj}`} x1={f(a[0])} y1={f(a[1])} x2={f(b[0])} y2={f(b[1])} stroke={color} strokeWidth="0.8" strokeDasharray={dash} />);
+    }
+  }
+
+  // The lifted cube's leader label.
+  let leader = null;
+  const liftedName = selected !== null && level[selected]?.length ? FILLS[level[selected][level[selected].length - 1]].name : null;
+  // Rows pack columns too close for a leader; the caption names the lift instead.
+  if (selected !== null && !dragging && liftedName && l.kind === 'diagonal') {
+    const { i, j } = l.places[selected];
+    const k = level[selected].length - 1 + LIFT;
+    const a = project(l, i + 1, j, k + 1);
+    const reach = Math.max(18, 0.9 * s);
+    const width = narrow ? 112 : 136;
+    const flip = a[0] + reach + width > W - 6;
+    const sign = flip ? -1 : 1;
+    // Above the tallest stack this column could hold, so it clears the next one too.
+    const clear = project(l, i, j, HEIGHT + LIFT + 0.9)[1];
+    const mid: [number, number] = [a[0] + sign * reach, Math.max(narrow ? 22 : 26, Math.min(a[1] - reach, clear))];
+    const end: [number, number] = [mid[0] + sign * width, mid[1]];
+    const tx = flip ? end[0] : mid[0] + 4;
+    leader = (
+      <g key={`leader${selected}`} className="bsg-fade">
+        <circle cx={f(a[0])} cy={f(a[1])} r="2.6" fill={INK} />
+        <polyline points={pts([a, mid, end])} fill="none" stroke={INK} strokeWidth="0.9" />
+        <rect x={f(tx - 2)} y={f(mid[1] - 17)} width={width - 4} height="13" fill="#fafaf8" opacity="0.85" />
+        <rect x={f(tx - 2)} y={f(mid[1] + 3)} width={width - 30} height="13" fill="#fafaf8" opacity="0.85" />
+        <text x={f(tx)} y={f(mid[1] - 6)} fontFamily={MONO} fontSize={narrow ? 10 : 11} fill={INK} letterSpacing="0.5">{`COL ${pad2(selected + 1)} · LIFTED`}</text>
+        <text x={f(tx)} y={f(mid[1] + 13)} fontFamily={MONO} fontSize={narrow ? 10 : 10} fill="#66665f" letterSpacing="0.5">{`TOP: ${FILLS[level[selected][level[selected].length - 1]].name}`}</text>
+      </g>
+    );
+  }
+
+  // Bracket corners around the keyboard-focused column, or the drag target.
+  const bracket = (c: number, key: string, color = INK) => {
+    const r = hitRect(l, c);
+    const m = 3;
+    const x0 = r.x + m, y0 = r.y + m, x1 = r.x + r.w - m, y1 = r.y + r.h - m;
+    const t = Math.min(12, r.w / 4);
+    const d = `M${f(x0)} ${f(y0 + t)}V${f(y0)}H${f(x0 + t)}M${f(x1 - t)} ${f(y0)}H${f(x1)}V${f(y0 + t)}M${f(x1)} ${f(y1 - t)}V${f(y1)}H${f(x1 - t)}M${f(x0 + t)} ${f(y1)}H${f(x0)}V${f(y1 - t)}`;
+    return (
+      <g key={key}>
+        <rect x={f(x0)} y={f(y0)} width={f(x1 - x0)} height={f(y1 - y0)} fill="none" stroke={color} strokeWidth="0.6" strokeDasharray="2 3" opacity="0.6" />
+        <path d={d} fill="none" stroke={color} strokeWidth="1.6" />
+      </g>
+    );
+  };
+
+  const cross = (c: number, key: string, className?: string) => {
+    const { i, j } = l.places[c];
+    const [x, y] = project(l, i + 0.5, j + 0.5, HEIGHT + LIFT + 0.3);
+    return (
+      <text key={key} className={className} x={f(x)} y={f(y)} textAnchor="middle" fontFamily={MONO} fontSize={Math.max(14, 0.45 * s)} fontWeight="700" fill={INK}>✗</text>
+    );
+  };
+
+  let ghost = null;
+  if (dragging) {
+    const { i, j } = l.places[dragging.from];
+    const k = level[dragging.from].length - 1;
+    ghost = (
+      <g transform={`translate(${f(dragging.dx)},${f(dragging.dy)})`} style={{ pointerEvents: 'none' }}>
+        <Cube l={l} i={i} j={j} k={k + LIFT} fill={level[dragging.from][k]} prefix={P} dashed weight={1.2} />
+      </g>
+    );
+  }
+
+  return (
+    <div
+      ref={frame}
+      className={`bsg-frame${dragging ? ' bsg-dragging' : ''}`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={(e) => endDrag(e, true)}
+      onPointerCancel={(e) => endDrag(e, false)}
+      onClickCapture={(e) => {
+        if (suppressClick.current) {
+          suppressClick.current = false;
+          e.stopPropagation();
+        }
+      }}
+    >
+      <svg className="bsg-board" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+        <defs>
+          <FillDefs prefix={P} fills={fills} scale={patternScale} />
+        </defs>
+        <path d={gridPath(l, W, H, gridStep)} fill="none" stroke={narrow ? '#ecece8' : '#e6e6e1'} strokeWidth="0.6" />
+        {lanes}
+        {columns}
+        {dragging && dragging.over !== null && dragging.over !== dragging.from &&
+          (canMove(level, dragging.from, dragging.over) ? bracket(dragging.over, 'over') : cross(dragging.over, 'overx'))}
+        {!dragging && invalidAt !== null && cross(invalidAt, `err${errors}`, 'bsg-flash')}
+        {focused !== null && !dragging && bracket(focused, 'focus')}
+        {leader}
+        {ghost}
+      </svg>
+      {level.map((col, c) => {
+        const r = hitRect(l, c);
+        const top = col[col.length - 1];
+        const state = isSorted(col) ? ', sorted' : selected === c ? ', top cube lifted' : '';
+        const label = `Column ${c + 1}: ${col.length ? `${col.length} of ${HEIGHT}, top ${FILLS[top].name.toLowerCase()}` : 'empty'}${state}`;
+        return (
+          <button
+            key={c}
+            ref={(el) => { buttons.current[c] = el; }}
+            type="button"
+            className="bsg-col"
+            style={{ left: r.x, top: r.y, width: r.w, height: r.h }}
+            aria-label={label}
+            aria-pressed={selected === c}
+            data-col={c}
+            data-cubes={col.join(',')}
+            onClick={() => props.onTap(c)}
+            onFocus={(e) => setFocused(e.currentTarget.matches(':focus-visible') ? c : null)}
+            onBlur={() => setFocused((cur) => (cur === c ? null : cur))}
+          />
+        );
+      })}
+      <span className={`bsg-caption bsg-caption-tl${liftedName && l.kind === 'rows' ? ' bsg-caption-on' : ''}`}>
+        {won
+          ? 'FIG. 01 — ALL SORTED ✓'
+          : liftedName && l.kind === 'rows'
+            ? `COL ${pad2(selected! + 1)} · LIFTED · TOP: ${liftedName}`
+            : 'FIG. 01 — BOARD'}
+      </span>
+      {!narrow && <span className="bsg-caption bsg-caption-br">SCALE 1:1 · ISO 30°</span>}
+    </div>
+  );
+}
+
