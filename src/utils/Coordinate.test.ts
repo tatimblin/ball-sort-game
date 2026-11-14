@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { Coordinate } from "./Coordinate";
 
 test('Coordinate: create key at [1, 1]', () => {
@@ -8,7 +10,6 @@ test('Coordinate: create key at [1, 1]', () => {
 
 test('Coordinate: create key at [1, 0]', () => {
   const coord = new Coordinate(1, 0);
-console.log(coord);
   expect(coord.key).toEqual('x1y0');
 });
 

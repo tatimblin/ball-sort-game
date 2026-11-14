@@ -1,17 +1,91 @@
+/* The game's one stylesheet. postcss.config.js scopes every rule here
+   (preflight too) under .bsg-root; embed.ts injects it beside the root. */
 @tailwind base;
-@tailwind components;
-@tailwind utilities;
 
-body {
+/* What preflight leaves to browser defaults a host page can restyle
+   (`div { margin: 2em }`). `.bsg-root :is(…)` outweighs bare element rules
+   and still loses to the utilities. */
+:is(div, span, section, h1, ul, ol, li, button, svg) {
   margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-shadow: none;
+  box-shadow: none;
+  float: none;
+  max-width: none;
+  list-style: none;
+}
+
+/* The cube outlines are drawn in the SVG default, black. */
+:is(svg, path) {
+  fill: initial;
+  stroke: none;
+}
+
+/* Preflight's `html` and `body` rules both land here, and its body rule
+   sets `line-height: inherit`, so the root states its own. */
+.bsg-root {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Taps select and move cubes: no grey flash, no text selection or
+     long-press callout. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@tailwind components;
+@tailwind utilities;
+
+.Fill-left {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transform: skewY(30deg) translateY(-30%);
+  width: 50%;
+  height: 50%;
+  bottom: 4%;
+  left: 0;
+  text-align: center;
+}
+
+.Fill-right {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transform: skewY(-30deg) translateY(-30%);
+  width: 50%;
+  height: 50%;
+  bottom: 4%;
+  right: 0;
+  text-align: center;
+}
+
+.Fill-top {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transform: rotate(210deg) skewX(-30deg);
+  transform-origin: 60% 30%;
+  width: 58%;
+  height: 50%;
+  top: 4%;
+  text-align: center;
 }

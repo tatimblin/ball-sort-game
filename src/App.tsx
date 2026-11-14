@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import classNames from 'classnames';
 import { Table, Column, Cell } from './components';
 import { Coordinate } from './utils/Coordinate';
 import { Game } from './utils/Game';
-import './App.css';
 
 const game = new Game();
 
@@ -59,7 +58,7 @@ function App() {
   }, [progress]);
 
   return (
-    <div className="mx-auto min-h-screen flex items-center justify-center bg-amber-300">
+    <div className="mx-auto min-h-full flex items-center justify-center bg-amber-300">
       <div className="container">
         <h1 className="text-3xl text-center mb-16 text-amber-900">ball sort game</h1>
         <Table
