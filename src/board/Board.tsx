@@ -5,7 +5,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { HEIGHT, canMove, isSorted, type Level } from '../utils/rules';
 import type { LogEntry } from '../utils/state';
-import { FILLS, FACES, FillDefs, INK, patternId } from './fills';
+import { FILLS, FACES, FillDefs, INK, patternId, patternWeight } from './fills';
 import { C, GRID, LIFT, columnAt, cubeFaces, f, gridPath, hitRect, layoutBoard, project, pts, type Layout } from './iso';
 
 export interface BoardProps {
@@ -71,54 +71,38 @@ function Ghost({ l, i, j, k, strong }: { l: Layout; i: number; j: number; k: num
   );
 }
 
-type Highlight = 'focus' | 'source' | 'target' | 'over' | 'invalid';
+/** focus: keyboard focus, nothing lifted. source: where the lifted cube came
+ *  from. target / invalid: where it would go, if it can or can't. */
+type Highlight = 'focus' | 'source' | 'target' | 'invalid';
 
-const HIGHLIGHT: Record<Highlight, { color: string; edge: number; dash: string; tick: number; reach: number }> = {
-  focus: { color: INK, edge: 0.9, dash: '3 3', tick: 1.7, reach: 0.4 },
-  over: { color: INK, edge: 1, dash: '4 3', tick: 2, reach: 0.4 },
-  target: { color: INK, edge: 0.8, dash: '4 3', tick: 1.1, reach: 0.25 },
-  source: { color: '#6a6a64', edge: 0.8, dash: '1.5 2.5', tick: 1.2, reach: 0.3 },
-  invalid: { color: '#9a9a95', edge: 0.8, dash: '2 3', tick: 1, reach: 0.25 },
+const HIGHLIGHT: Record<Highlight, { color: string; edge: number; dash: string; tick: number }> = {
+  focus: { color: INK, edge: 0.9, dash: '3 3', tick: 1.7 },
+  target: { color: INK, edge: 1, dash: '4 3', tick: 2 },
+  source: { color: '#77776f', edge: 0.8, dash: '1.5 2.5', tick: 1.2 },
+  invalid: { color: '#a5a5a0', edge: 0.8, dash: '2 3', tick: 1.1 },
 };
 
-/** An iso outline of a column's slot volume: its grid-aligned footprint pad,
- *  four cubes high, with ticks along the edges at each corner. `back` holds
- *  the three edges behind the column (drawn before its cubes), `front` the rest. */
+/** A flat highlight on the column's front face: the left visible face of its
+ *  slot (the side facing the labels), four cubes high and as wide as its grid
+ *  pad, so a parallelogram in the iso plane, with ticks at its corners. */
 function isoHighlight(l: Layout, i: number, j: number, kind: Highlight) {
   const st = HIGHLIGHT[kind];
-  const lo = [i - GRID, j - GRID];
-  const hi = [i + 1 + GRID, j + 1 + GRID];
-  type V = [number, number, number];
-  const at = (v: V) => project(l, v[0], v[1], v[2]);
-  const corners: V[] = [];
-  for (const a of [lo[0], hi[0]]) for (const b of [lo[1], hi[1]]) for (const c of [0, HEIGHT]) corners.push([a, b, c]);
-  const hidden = (v: V) => v[0] === lo[0] && v[1] === lo[1] && v[2] === 0;
-  const edges: [V, V][] = [];
-  corners.forEach((u) => corners.forEach((v) => {
-    const diff = [0, 1, 2].filter((d) => u[d] !== v[d]);
-    if (diff.length === 1 && u[diff[0]] < v[diff[0]]) edges.push([u, v]);
-  }));
-  const line = ([u, v]: [V, V]) => {
-    const a = at(u);
-    const b = at(v);
-    return `M${f(a[0])} ${f(a[1])}L${f(b[0])} ${f(b[1])}`;
-  };
-  const tick = ([u, v]: [V, V]) => {
-    // A short solid stroke from each end of the edge, along it.
-    const len = Math.hypot(v[0] - u[0], v[1] - u[1], v[2] - u[2]);
-    const t = Math.min(st.reach, len / 3) / len;
-    const mix = (p: V, q: V, w: number): V => [p[0] + (q[0] - p[0]) * w, p[1] + (q[1] - p[1]) * w, p[2] + (q[2] - p[2]) * w];
-    return line([u, mix(u, v, t)]) + line([v, mix(v, u, t)]);
-  };
-  const back = edges.filter(([u]) => hidden(u));
-  const front = edges.filter(([u]) => !hidden(u));
-  const draw = (set: [V, V][], key: string) => (
-    <g key={key} className={`bsg-hl bsg-hl-${kind}`} fill="none" stroke={st.color} pointerEvents="none">
-      <path d={set.map(line).join('')} strokeWidth={st.edge} strokeDasharray={st.dash} opacity={key === 'hlb' ? 0.55 : 0.85} />
-      <path d={set.map(tick).join('')} strokeWidth={st.tick} strokeLinecap="square" />
+  const jf = j + 1 + GRID;
+  const corners = [project(l, i - GRID, jf, 0), project(l, i + 1 + GRID, jf, 0), project(l, i + 1 + GRID, jf, HEIGHT), project(l, i - GRID, jf, HEIGHT)];
+  const reach = Math.min(10, 0.3 * l.s);
+  let ticks = '';
+  corners.forEach((p, n) => {
+    for (const q of [corners[(n + 1) % 4], corners[(n + 3) % 4]]) {
+      const t = reach / Math.hypot(q[0] - p[0], q[1] - p[1]);
+      ticks += `M${f(p[0])} ${f(p[1])}L${f(p[0] + (q[0] - p[0]) * t)} ${f(p[1] + (q[1] - p[1]) * t)}`;
+    }
+  });
+  return (
+    <g key="hl" className={`bsg-hl bsg-hl-${kind}`} fill="none" stroke={st.color} pointerEvents="none">
+      <polygon points={pts(corners)} strokeWidth={st.edge} strokeDasharray={st.dash} opacity="0.85" />
+      <path d={ticks} strokeWidth={st.tick} strokeLinecap="square" />
     </g>
   );
-  return { back: draw(back, 'hlb'), front: draw(front, 'hlf') };
 }
 
 export function Board(props: BoardProps) {
@@ -127,6 +111,8 @@ export function Board(props: BoardProps) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [focused, setFocused] = useState<number | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
+  /** The column under the mouse (never set by touch). */
+  const [hover, setHover] = useState<number | null>(null);
   const suppressClick = useRef(false);
 
   useLayoutEffect(() => {
@@ -145,7 +131,7 @@ export function Board(props: BoardProps) {
   // A grid line every half cube, or every cube when that would crowd a phone.
   const gridStep = GRID * s >= 14 ? GRID : 1;
   const fills = [...new Set(level.flat())].sort((a, b) => a - b);
-  const patternScale = Math.min(1.15, Math.max(0.7, s / 44));
+  const outline = narrow ? 0.85 : 1;
   const lift = drag?.active ? drag.from : selected;
   const labelSize = Math.min(12.5, Math.max(10, 0.3 * s));
 
@@ -166,6 +152,11 @@ export function Board(props: BoardProps) {
     setDrag({ from: c, x0: x, y0: y, dx: 0, dy: 0, over: c, active: false, pointerId: e.pointerId });
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && !drag?.active) {
+      const [hx, hy] = local(e);
+      const over = columnAt(l, hx, hy);
+      if (over !== hover) setHover(over);
+    }
     if (!drag || e.pointerId !== drag.pointerId) return;
     const [x, y] = local(e);
     const dx = x - drag.x0;
@@ -193,22 +184,28 @@ export function Board(props: BoardProps) {
   const droppedAt = lastEntry?.kind === 'move' ? lastEntry.to : null;
   const dragging = drag?.active ? drag : null;
 
+  // At most two highlights: where the lifted cube came from, and where it
+  // would go — the column under the dragged cube, else the keyboard-focused
+  // column, else the one the mouse is over. Touch has no hover, so after a
+  // lift only the source shows until the next tap.
+  const goal = dragging
+    ? dragging.over
+    : lift !== null
+      ? (focused !== null && focused !== lift ? focused : hover)
+      : null;
+  const target = goal !== null && goal !== lift ? goal : null;
+  const targetOk = target !== null && lift !== null && canMove(level, lift, target);
+
   const columns = level.map((col, c) => {
     const { i, j } = l.places[c];
     const sorted = isSorted(col);
-    const target = lift !== null && lift !== c && canMove(level, lift, c);
-    const dim = dragging && dragging.from !== c && !target;
-    // One iso highlight per column, most specific first.
-    const hovered = dragging && dragging.over === c && dragging.from !== c;
-    const kind: Highlight | null = hovered
-      ? (target ? 'over' : 'invalid')
-      : focused === c && !dragging
-        ? 'focus'
-        : lift === c
-          ? 'source'
-          : target
-            ? 'target'
-            : null;
+    const kind: Highlight | null = c === target
+      ? (targetOk ? 'target' : 'invalid')
+      : c === lift
+        ? 'source'
+        : c === focused && lift === null
+          ? 'focus'
+          : null;
     const hl = kind ? isoHighlight(l, i, j, kind) : null;
     const parts = [];
     // Footprint pad on the grid.
@@ -216,11 +213,11 @@ export function Board(props: BoardProps) {
       <polygon key="pad" points={pts([project(l, i - GRID, j - GRID), project(l, i + 1 + GRID, j - GRID), project(l, i + 1 + GRID, j + 1 + GRID), project(l, i - GRID, j + 1 + GRID)])}
         fill="none" stroke="#c4c4bf" strokeWidth="0.8" strokeDasharray="2 2" />,
     );
-    if (hl) parts.push(hl.back);
-    for (let k = col.length; k < HEIGHT; k++) parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} strong={target && k === col.length} />);
+
+    for (let k = col.length; k < HEIGHT; k++) parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} strong={c === target && targetOk && k === col.length} />);
     if (sorted) {
       // A sorted column is one block. Just sorted, its seams fade out.
-      parts.push(<Cube key="prism" l={l} i={i} j={j} k={0} height={HEIGHT} fill={col[0]} prefix={P} weight={1.4} className="bsg-prism" />);
+      parts.push(<Cube key="prism" l={l} i={i} j={j} k={0} height={HEIGHT} fill={col[0]} prefix={P} weight={narrow ? 1.2 : 1.4} className="bsg-prism" />);
       if (droppedAt === c) {
         let d = '';
         for (let k = 1; k < HEIGHT; k++) {
@@ -244,14 +241,14 @@ export function Board(props: BoardProps) {
           parts.push(<line key={`cl${a}${b}`} x1={f(p[0])} y1={f(p[1])} x2={f(q[0])} y2={f(q[1])} stroke={INK} strokeWidth="0.7" strokeDasharray="1.5 2.5" />);
         }
         parts.push(
-          <Cube key={`lift${c}`} l={l} i={i} j={j} k={k + LIFT} fill={v} prefix={P} dashed weight={1.2}
+          <Cube key={`lift${c}`} l={l} i={i} j={j} k={k + LIFT} fill={v} prefix={P} dashed weight={outline + 0.2}
             className="bsg-lift" style={{ ['--bsg-dy' as string]: `${f(LIFT * s)}px` }} />,
         );
         return;
       }
       const dropped = top && droppedAt === c;
       parts.push(
-        <Cube key={`c${k}${dropped ? 'd' : ''}`} l={l} i={i} j={j} k={k} fill={v} prefix={P}
+        <Cube key={`c${k}${dropped ? 'd' : ''}`} l={l} i={i} j={j} k={k} fill={v} prefix={P} weight={outline}
           className={dropped ? 'bsg-drop' : undefined} style={dropped ? { ['--bsg-dy' as string]: `${f(-LIFT * s)}px` } : undefined} />,
       );
     });
@@ -289,11 +286,11 @@ export function Board(props: BoardProps) {
         <text key="lc" x={f(x)} y={f(y + 0.55 * s + 3 + labelSize * 1.2)} fontFamily={MONO} fontSize={labelSize} textAnchor="middle" fill={sorted ? INK : '#9a9a95'}>{count}</text>,
       );
     }
-    if (hl) parts.push(hl.front);
+    if (hl) parts.push(hl);
     // A refused drop: shake the column and mark it.
     const refused = invalidAt === c;
     return (
-      <g key={`col${c}${refused ? `e${errors}` : ''}`} className={refused ? 'bsg-shake' : undefined} opacity={dim ? 0.35 : 1}>
+      <g key={`col${c}${refused ? `e${errors}` : ''}`} className={refused ? 'bsg-shake' : undefined}>
         {parts}
       </g>
     );
@@ -314,7 +311,7 @@ export function Board(props: BoardProps) {
   // The lifted cube's leader label.
   let leader = null;
   const liftedName = selected !== null && level[selected]?.length ? FILLS[level[selected][level[selected].length - 1]].name : null;
-  // Rows pack columns too close for a leader; the caption names the lift instead.
+  // Rows pack columns too close for a leader; the source highlight marks the lift there.
   if (selected !== null && !dragging && liftedName && l.kind === 'diagonal') {
     const { i, j } = l.places[selected];
     const k = level[selected].length - 1 + LIFT;
@@ -354,7 +351,7 @@ export function Board(props: BoardProps) {
     const k = level[dragging.from].length - 1;
     ghost = (
       <g transform={`translate(${f(dragging.dx)},${f(dragging.dy)})`} style={{ pointerEvents: 'none' }}>
-        <Cube l={l} i={i} j={j} k={k + LIFT} fill={level[dragging.from][k]} prefix={P} dashed weight={1.2} />
+        <Cube l={l} i={i} j={j} k={k + LIFT} fill={level[dragging.from][k]} prefix={P} dashed weight={outline + 0.2} />
       </g>
     );
   }
@@ -367,6 +364,7 @@ export function Board(props: BoardProps) {
       onPointerMove={onPointerMove}
       onPointerUp={(e) => endDrag(e, true)}
       onPointerCancel={(e) => endDrag(e, false)}
+      onPointerLeave={() => setHover(null)}
       onClickCapture={(e) => {
         if (suppressClick.current) {
           suppressClick.current = false;
@@ -376,12 +374,12 @@ export function Board(props: BoardProps) {
     >
       <svg className="bsg-board" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
         <defs>
-          <FillDefs prefix={P} fills={fills} scale={patternScale} />
+          <FillDefs prefix={P} fills={fills} weight={patternWeight(s)} />
         </defs>
         <path d={gridPath(l, W, H, gridStep)} fill="none" stroke={narrow ? '#ecece8' : '#e6e6e1'} strokeWidth="0.6" />
         {lanes}
         {columns}
-        {dragging && dragging.over !== null && dragging.over !== dragging.from && !canMove(level, dragging.from, dragging.over) && cross(dragging.over, 'overx')}
+        {target !== null && !targetOk && cross(target, 'overx')}
         {!dragging && invalidAt !== null && cross(invalidAt, `err${errors}`, 'bsg-flash')}
         {leader}
         {ghost}
@@ -408,14 +406,6 @@ export function Board(props: BoardProps) {
           />
         );
       })}
-      <span className={`bsg-caption bsg-caption-tl${liftedName && l.kind === 'rows' ? ' bsg-caption-on' : ''}`}>
-        {won
-          ? 'FIG. 01 — ALL SORTED ✓'
-          : liftedName && l.kind === 'rows'
-            ? `COL ${pad2(selected! + 1)} · LIFTED · TOP: ${liftedName}`
-            : 'FIG. 01 — BOARD'}
-      </span>
-      {!narrow && <span className="bsg-caption bsg-caption-br">SCALE 1:1 · ISO 30°</span>}
     </div>
   );
 }

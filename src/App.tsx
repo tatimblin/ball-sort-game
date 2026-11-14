@@ -3,7 +3,7 @@ import { Board } from './board/Board';
 import { FACES, FILLS, FillDefs, INK, patternId } from './board/fills';
 import { cubeFaces, pts } from './board/iso';
 import { DIFFICULTIES, type Difficulty } from './utils/generator';
-import { fillCount, sortedCount } from './utils/rules';
+import { fillCount, isSorted, sortedCount } from './utils/rules';
 import { createGame, moveCount, reducer, type LogEntry } from './utils/state';
 
 export interface AppProps {
@@ -34,18 +34,29 @@ function announce(e: LogEntry | undefined, won: boolean): string {
   return `Undid move ${e.n}.`;
 }
 
-/** A small cube for the legend. */
-function Swatch({ fill, prefix }: { fill: number; prefix: string }) {
-  const faces = cubeFaces({ s: 11, ox: 10.5, oy: 1 }, 0, 0, -1);
+/** A legend cube: filled with its pattern once that fill is sorted, an empty
+ *  outline until then, so the legend is also a progress row. */
+function Swatch({ fill, prefix, sorted }: { fill: number; prefix: string; sorted: boolean }) {
+  const faces = cubeFaces({ s: 14, ox: 13, oy: 1.5 }, 0, 0, -1);
   const p = `${prefix}lg${fill}`;
+  const name = FILLS[fill].name.charAt(0) + FILLS[fill].name.slice(1).toLowerCase();
+  const label = `${name}, ${sorted ? 'sorted' : 'not sorted'}`;
   return (
-    <svg width="21" height="24" viewBox="0 0 21 24" aria-hidden="true">
-      <defs>
-        <FillDefs prefix={p} fills={[fill]} />
-      </defs>
-      {FACES.map((face) => <polygon key={face} points={pts(faces[face])} fill={FILLS[fill].tone[face]} />)}
-      {FILLS[fill].pattern && FACES.map((face) => <polygon key={`p${face}`} points={pts(faces[face])} fill={`url(#${patternId(p, fill, face)})`} />)}
-      {FACES.map((face) => <polygon key={`o${face}`} points={pts(faces[face])} fill="none" stroke={INK} strokeWidth="1" strokeLinejoin="round" />)}
+    <svg className={sorted ? 'on' : ''} width="26" height="30" viewBox="0 0 26 30" role="img" aria-label={label}>
+      <title>{label}</title>
+      {sorted && (
+        <>
+          <defs>
+            <FillDefs prefix={p} fills={[fill]} />
+          </defs>
+          {FACES.map((face) => <polygon key={face} points={pts(faces[face])} fill={FILLS[fill].tone[face]} />)}
+          {FILLS[fill].pattern && FACES.map((face) => <polygon key={`p${face}`} points={pts(faces[face])} fill={`url(#${patternId(p, fill, face)})`} />)}
+        </>
+      )}
+      {FACES.map((face) => (
+        <polygon key={`o${face}`} points={pts(faces[face])} fill="none" stroke={sorted ? INK : '#a5a5a0'} strokeWidth="1"
+          strokeDasharray={sorted ? undefined : '2 2'} strokeLinejoin="round" />
+      ))}
     </svg>
   );
 }
@@ -79,6 +90,7 @@ function App({ difficulty = 'medium', seed = 1 }: AppProps) {
   const progress = Math.round((100 * sorted) / fills);
   const moves = moveCount(state);
   const used = [...new Set(state.start.flat())].sort((a, b) => a - b);
+  const sortedFills = new Set(level.filter(isSorted).map((c) => c[0]));
 
   const focusColumn = (c: number) => {
     const n = level.length;
@@ -162,9 +174,9 @@ function App({ difficulty = 'medium', seed = 1 }: AppProps) {
               {'1001011011100101'.split('').map((b, i) => <i key={i} className={b === '1' ? '' : 'o'} />)}
             </span>
           </div>
-          <div className="bsg-legend" aria-label="Fills">
+          <div className="bsg-legend" role="list" aria-label="Fills sorted">
             {used.map((v) => (
-              <div key={v}><Swatch fill={v} prefix={prefix} />{String.fromCharCode(65 + v)} · {FILLS[v].name}</div>
+              <span key={v} role="listitem"><Swatch fill={v} prefix={prefix} sorted={sortedFills.has(v)} /></span>
             ))}
           </div>
           <div className="bsg-log" aria-hidden="true">

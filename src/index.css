@@ -172,19 +172,15 @@
   color: var(--paper);
 }
 
+/* One row of fill icons: outlined until that fill is sorted. */
 .bsg-legend {
-  font-size: 10.5px;
-  color: #444;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 10px;
-}
-.bsg-legend div {
   display: flex;
-  align-items: center;
-  gap: 7px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
 }
+.bsg-legend span,
 .bsg-legend svg {
+  display: block;
   flex: none;
 }
 
@@ -343,29 +339,6 @@
 .bsg-dragging .bsg-col {
   cursor: grabbing;
 }
-.bsg-caption {
-  position: absolute;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--mute);
-  letter-spacing: 0.06em;
-  pointer-events: none;
-}
-.bsg-caption-tl {
-  left: 10px;
-  top: 8px;
-}
-.bsg-caption-br {
-  right: 10px;
-  bottom: 8px;
-}
-.bsg-caption-on,
-.bsg-won .bsg-caption-tl {
-  color: var(--ink);
-}
-.bsg-narrow .bsg-caption {
-  font-size: 10px;
-}
 .bsg-sr {
   position: absolute;
   width: 1px;
@@ -490,12 +463,8 @@
 }
 .bsg-narrow .bsg-legend {
   order: 2;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 5px 4px;
-  font-size: 9.5px;
-}
-.bsg-narrow .bsg-legend div {
-  gap: 3px;
+  justify-content: center;
+  gap: 4px 14px;
 }
 .bsg-narrow .bsg-stats {
   order: 3;
