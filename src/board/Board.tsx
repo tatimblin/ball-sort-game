@@ -6,7 +6,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEven
 import { HEIGHT, canMove, isSorted, type Level } from '../utils/rules';
 import type { LogEntry } from '../utils/state';
 import { FILLS, FACES, FillDefs, INK, patternId, patternWeight } from './fills';
-import { C, GRID, LIFT, columnAt, cubeFaces, f, gridPath, hitRect, layoutBoard, project, pts, type Layout } from './iso';
+import { GRID, LIFT, columnAt, cubeFaces, f, gridPath, hitRect, layoutBoard, project, pts, type Layout, type Pt } from './iso';
 
 export interface BoardProps {
   idPrefix: string;
@@ -61,14 +61,26 @@ function Cube({ l, i, j, k, fill, prefix, dashed, weight = 1, height = 1, classN
   );
 }
 
-function Ghost({ l, i, j, k, strong }: { l: Layout; i: number; j: number; k: number; strong?: boolean }) {
+function Ghost({ l, i, j, k }: { l: Layout; i: number; j: number; k: number }) {
   const b = cubeFaces(l, i, j, k);
   return (
     <g>
-      <polygon points={pts(b.hull)} fill="none" stroke={strong ? '#5a5a56' : '#b9b9b4'} strokeWidth={strong ? 1 : 0.8} strokeDasharray="2 3" />
+      <polygon points={pts(b.hull)} fill="none" stroke="#b9b9b4" strokeWidth="0.8" strokeDasharray="2 3" />
       <line x1={f(b.top[2][0])} y1={f(b.top[2][1])} x2={f(b.left[2][0])} y2={f(b.left[2][1])} stroke="#cfcfca" strokeWidth="0.8" strokeDasharray="2 3" />
     </g>
   );
+}
+
+/** A cube in motion between columns, drawn at its final place (column `c`,
+ *  height `k`, `lifted` or not) and animated in from the path's start. */
+interface Flight {
+  id: number;
+  c: number;
+  k: number;
+  lifted: boolean;
+  fill: number;
+  frames: Keyframe[];
+  duration: number;
 }
 
 /** focus: keyboard focus, nothing lifted. source: where the lifted cube came
@@ -76,7 +88,7 @@ function Ghost({ l, i, j, k, strong }: { l: Layout; i: number; j: number; k: num
 type Highlight = 'focus' | 'source' | 'target' | 'invalid';
 
 const HIGHLIGHT: Record<Highlight, { color: string; edge: number; dash: string; tick: number }> = {
-  focus: { color: INK, edge: 0.9, dash: '3 3', tick: 1.7 },
+  focus: { color: '#8a8a86', edge: 0.8, dash: '3 3', tick: 1.3 },
   target: { color: INK, edge: 1, dash: '4 3', tick: 2 },
   source: { color: '#77776f', edge: 0.8, dash: '1.5 2.5', tick: 1.2 },
   invalid: { color: '#a5a5a0', edge: 0.8, dash: '2 3', tick: 1.1 },
@@ -113,6 +125,10 @@ export function Board(props: BoardProps) {
   const [drag, setDrag] = useState<Drag | null>(null);
   /** The column under the mouse (never set by touch). */
   const [hover, setHover] = useState<number | null>(null);
+  const [flight, setFlight] = useState<Flight | null>(null);
+  const flyRef = useRef<SVGGElement>(null);
+  const flightId = useRef(0);
+  const dragDrop = useRef<{ from: number; to: number; dx: number; dy: number } | null>(null);
   const suppressClick = useRef(false);
 
   useLayoutEffect(() => {
@@ -174,11 +190,124 @@ export function Board(props: BoardProps) {
       suppressClick.current = true;
       const [x, y] = local(e);
       const to = columnAt(l, x, y);
-      // Dropped on another column: move, or log why not and snap back.
-      if (drop && to !== null && to !== drag.from) props.onMove(drag.from, to);
+      // Dropped on another column: move, or log why not and snap back. Note
+      // where the cube was let go, so it settles from there.
+      if (drop && to !== null && to !== drag.from) {
+        dragDrop.current = { from: drag.from, to, dx: x - drag.x0, dy: y - drag.y0 };
+        props.onMove(drag.from, to);
+      }
     }
     setDrag(null);
   };
+
+  // Moves animate: the game state has already changed, and a "flight" draws
+  // the moving cube from where it was to where it now is while the real one
+  // stays hidden. A new move replaces any flight in progress.
+  useLayoutEffect(() => {
+    const drop = dragDrop.current;
+    dragDrop.current = null;
+    const e = lastEntry;
+    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!e || reduced) {
+      setFlight(null);
+      return;
+    }
+    const at = (c: number, k: number) => project(l, l.places[c].i, l.places[c].j, k);
+    // A path clear of every stack between the two columns: up, across, down.
+    const apex = (a: number, b: number) => {
+      let y = Infinity;
+      for (let c = Math.min(a, b); c <= Math.max(a, b); c++) y = Math.min(y, at(c, HEIGHT + LIFT + 0.3)[1]);
+      return y;
+    };
+    const tr = (x: number, y: number) => `translate(${f(x)}px, ${f(y)}px)`;
+    const arc = (start: Pt, end: Pt, top: number) => {
+      const sx = start[0] - end[0];
+      const sy = start[1] - end[1];
+      const ay = top - end[1];
+      const d1 = Math.abs(sy - ay);
+      const d2 = Math.abs(sx);
+      const d3 = Math.abs(ay);
+      const total = d1 + d2 + d3 || 1;
+      const o1 = (0.9 * d1) / total;
+      const o2 = o1 + (0.9 * d2) / total;
+      return {
+        frames: [
+          { transform: tr(sx, sy), offset: 0, easing: 'ease-out' },
+          { transform: tr(sx, ay), offset: o1, easing: 'ease-in-out' },
+          { transform: tr(0, ay), offset: o2, easing: 'ease-in' },
+          // A 1.5px settle as it lands.
+          { transform: tr(0, 1.5), offset: 0.9, easing: 'ease-out' },
+          { transform: tr(0, 0), offset: 1 },
+        ],
+        duration: Math.round(Math.min(350, Math.max(250, 220 + total * 0.12))),
+      };
+    };
+    const settle = (sx: number, sy: number, duration: number) => ({
+      frames: [
+        { transform: tr(sx, sy), offset: 0, easing: 'ease-out' },
+        { transform: tr(0, 1.5), offset: 0.85, easing: 'ease-out' },
+        { transform: tr(0, 0), offset: 1 },
+      ],
+      duration,
+    });
+    const id = ++flightId.current;
+    const fromLen = level[e.from].length;
+    const toLen = level[e.to].length;
+    if (e.kind === 'move') {
+      // The cube now tops `to`; it left `from` lifted, or from the pointer.
+      const end = at(e.to, toLen - 1);
+      const lifted = at(e.from, fromLen + LIFT);
+      const path = drop && drop.from === e.from && drop.to === e.to
+        ? settle(lifted[0] + drop.dx - end[0], lifted[1] + drop.dy - end[1], 180)
+        : arc(lifted, end, apex(e.from, e.to));
+      setFlight({ id, c: e.to, k: toLen - 1, lifted: false, fill: e.fill, ...path });
+    } else if (e.kind === 'undo') {
+      // Back from the slot it filled on `to` to the top of `from`.
+      const end = at(e.from, fromLen - 1);
+      const start = at(e.to, toLen);
+      setFlight({ id, c: e.from, k: fromLen - 1, lifted: false, fill: level[e.from][fromLen - 1], ...arc(start, end, apex(e.from, e.to)) });
+    } else if (drop && drop.from === e.from && drop.to === e.to) {
+      // A refused drag drop: back from the pointer to its own column.
+      const end = at(e.from, fromLen - 1);
+      const lifted = at(e.from, fromLen - 1 + LIFT);
+      setFlight({ id, c: e.from, k: fromLen - 1, lifted: false, fill: level[e.from][fromLen - 1], ...settle(lifted[0] + drop.dx - end[0], lifted[1] + drop.dy - end[1], 240) });
+    } else if (fromLen) {
+      // A refused click or key drop: the lifted cube goes out over the target
+      // and comes back along the same path, still lifted.
+      const home = at(e.from, fromLen - 1 + LIFT);
+      const ay = apex(e.from, e.to) - home[1];
+      const tx = at(e.to, 0)[0] - home[0];
+      setFlight({
+        id, c: e.from, k: fromLen - 1, lifted: true, fill: level[e.from][fromLen - 1],
+        frames: [
+          { transform: tr(0, 0), offset: 0, easing: 'ease-out' },
+          { transform: tr(0, ay), offset: 0.2, easing: 'ease-in-out' },
+          { transform: tr(tx, ay), offset: 0.5, easing: 'ease-in-out' },
+          { transform: tr(0, ay), offset: 0.8, easing: 'ease-in' },
+          { transform: tr(0, 0), offset: 1 },
+        ],
+        duration: 340,
+      });
+    } else {
+      setFlight(null);
+    }
+    // Only a new log entry starts a flight.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastEntry]);
+
+  useLayoutEffect(() => {
+    if (!flight) return;
+    const el = flyRef.current;
+    if (!el || typeof el.animate !== 'function') {
+      setFlight(null);
+      return;
+    }
+    const anim = el.animate(flight.frames, { duration: flight.duration });
+    anim.onfinish = () => setFlight((cur) => (cur && cur.id === flight.id ? null : cur));
+    // Unmount (destroy) or a newer flight cancels this one.
+    return () => anim.cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flight?.id]);
 
   const invalidAt = lastEntry?.kind === 'invalid' ? lastEntry.to : null;
   const droppedAt = lastEntry?.kind === 'move' ? lastEntry.to : null;
@@ -195,6 +324,15 @@ export function Board(props: BoardProps) {
       : null;
   const target = goal !== null && goal !== lift ? goal : null;
   const targetOk = target !== null && lift !== null && canMove(level, lift, target);
+
+  // With nothing lifted, the hovered or keyboard-focused column floats its top
+  // cube a little: a preview of what a click or Enter would pick up. Empty
+  // columns and sorted blocks don't float.
+  const peekAt = !dragging && lift === null && !won ? (focused ?? hover) : null;
+  // A cube still flying in lands at rest first, then may float.
+  const peek = peekAt !== null && level[peekAt]?.length && !isSorted(level[peekAt]) && flight?.c !== peekAt ? peekAt : null;
+  const float = Math.round(0.3 * s);
+  const liftedFill = lift !== null && level[lift]?.length ? level[lift][level[lift].length - 1] : null;
 
   const columns = level.map((col, c) => {
     const { i, j } = l.places[c];
@@ -214,8 +352,19 @@ export function Board(props: BoardProps) {
         fill="none" stroke="#c4c4bf" strokeWidth="0.8" strokeDasharray="2 2" />,
     );
 
-    for (let k = col.length; k < HEIGHT; k++) parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} strong={c === target && targetOk && k === col.length} />);
-    if (sorted) {
+    const preview = c === target && targetOk && liftedFill !== null;
+    for (let k = col.length; k < HEIGHT; k++) {
+      // The drop preview: a dashed, faded copy of the lifted cube where it would land.
+      if (preview && k === col.length) {
+        parts.push(<Cube key={`pv${k}`} l={l} i={i} j={j} k={k} fill={liftedFill!} prefix={P} dashed weight={outline} className="bsg-preview" />);
+      } else {
+        parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} />);
+      }
+    }
+    // A cube still flying in lands first; the block forms after.
+    const landing = flight !== null && !flight.lifted && flight.c === c;
+    const merged = sorted && !landing;
+    if (merged) {
       // A sorted column is one block. Just sorted, its seams fade out.
       parts.push(<Cube key="prism" l={l} i={i} j={j} k={0} height={HEIGHT} fill={col[0]} prefix={P} weight={narrow ? 1.2 : 1.4} className="bsg-prism" />);
       if (droppedAt === c) {
@@ -229,7 +378,7 @@ export function Board(props: BoardProps) {
         parts.push(<path key={`seam${lastEntry?.kind === 'move' ? lastEntry.n : 0}`} className="bsg-seam" d={d} fill="none" stroke={INK} strokeWidth="1" />);
       }
     }
-    if (!sorted) col.forEach((v, k) => {
+    if (!merged) col.forEach((v, k) => {
       const top = k === col.length - 1;
       if (top && lift === c) {
         parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} />);
@@ -240,35 +389,38 @@ export function Board(props: BoardProps) {
           const q = project(l, a, b, k + 1 + LIFT);
           parts.push(<line key={`cl${a}${b}`} x1={f(p[0])} y1={f(p[1])} x2={f(q[0])} y2={f(q[1])} stroke={INK} strokeWidth="0.7" strokeDasharray="1.5 2.5" />);
         }
+        const away = flight !== null && flight.lifted && flight.c === c;
         parts.push(
-          <Cube key={`lift${c}`} l={l} i={i} j={j} k={k + LIFT} fill={v} prefix={P} dashed weight={outline + 0.2}
-            className="bsg-lift" style={{ ['--bsg-dy' as string]: `${f(LIFT * s)}px` }} />,
+          <g key={`lift${c}`} className="bsg-bob" style={away ? { visibility: 'hidden' } : undefined}>
+            <Cube l={l} i={i} j={j} k={k + LIFT} fill={v} prefix={P} dashed weight={outline + 0.2}
+              className="bsg-lift" style={{ ['--bsg-dy' as string]: `${f(LIFT * s)}px` }} />
+          </g>,
         );
         return;
       }
-      const dropped = top && droppedAt === c;
-      parts.push(
-        <Cube key={`c${k}${dropped ? 'd' : ''}`} l={l} i={i} j={j} k={k} fill={v} prefix={P} weight={outline}
-          className={dropped ? 'bsg-drop' : undefined} style={dropped ? { ['--bsg-dy' as string]: `${f(-LIFT * s)}px` } : undefined} />,
+      const inFlight = landing && k === flight!.k;
+      const cube = (
+        <Cube key={`c${k}`} l={l} i={i} j={j} k={k} fill={v} prefix={P} weight={outline}
+          className={inFlight ? 'bsg-landing' : undefined} style={inFlight ? { visibility: 'hidden' } : undefined} />
       );
-    });
-    // Sorted, on wide frames: a dimension line up the column's height, in the gap to its left
-    // (its 4/4 is on the ground label). Phones make do with the block and the label.
-    if (sorted && !narrow) {
-      const [x, y0] = project(l, i, j + 1, 0);
-      const y1 = project(l, i, j + 1, HEIGHT)[1];
-      const dx = x - Math.max(5, (l.advance - 2 * C * s) / 2);
+      if (!top) {
+        parts.push(cube);
+        return;
+      }
+      // The top cube sits in a group that floats on hover or focus, over a
+      // faint shadow on the slot it would leave.
+      const on = c === peek;
       parts.push(
-        <g key="dim" className="bsg-dim" stroke={INK} strokeWidth="0.8">
-          <line x1={f(dx)} y1={f(y0)} x2={f(dx)} y2={f(y1)} />
-          <line x1={f(dx - 3.5)} y1={f(y0 + 2)} x2={f(dx + 3.5)} y2={f(y0 - 2)} />
-          <line x1={f(dx - 3.5)} y1={f(y1 + 2)} x2={f(dx + 3.5)} y2={f(y1 - 2)} />
+        <polygon key="shadow" className={`bsg-shadow${on ? ' on' : ''}`} fill={INK}
+          points={pts([project(l, i, j, k), project(l, i + 1, j, k), project(l, i + 1, j + 1, k), project(l, i, j + 1, k)])} />,
+        <g key={`t${k}`} className={`bsg-float${on ? ' on' : ''}`} style={{ transform: `translateY(${on ? -float : 0}px)` }}>
+          {cube}
         </g>,
       );
-    }
-    // Labels: COL 0n and n/4, with ✓ once sorted.
+    });
+    // Labels: COL 0n and n/4, or just ✓ once sorted.
     const name = `COL ${pad2(c + 1)}`;
-    const count = `${col.length}/${HEIGHT}${sorted ? ' ✓' : ''}`;
+    const count = sorted ? '✓' : `${col.length}/${HEIGHT}`;
     if (l.groundLabels) {
       const m = (a: number, b: number) => {
         const [x, y] = project(l, a, b);
@@ -383,6 +535,12 @@ export function Board(props: BoardProps) {
         {!dragging && invalidAt !== null && cross(invalidAt, `err${errors}`, 'bsg-flash')}
         {leader}
         {ghost}
+        {flight && (
+          <g key={`fly${flight.id}`} ref={flyRef} className="bsg-flight" pointerEvents="none">
+            <Cube l={l} i={l.places[flight.c].i} j={l.places[flight.c].j} k={flight.k + (flight.lifted ? LIFT : 0)}
+              fill={flight.fill} prefix={P} dashed={flight.lifted} weight={flight.lifted ? outline + 0.2 : outline} />
+          </g>
+        )}
       </svg>
       {level.map((col, c) => {
         const r = hitRect(l, c);

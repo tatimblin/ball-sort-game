@@ -348,13 +348,11 @@
   white-space: nowrap;
 }
 
-/* Motion: a lift rises, a drop settles, a refused drop shakes. Keyframe
-   names are global, so they carry the game's prefix. */
+/* Motion: a lift rises, a refused drop shakes; moves between columns fly
+   (Board.tsx animates them). Keyframe names are global, so they carry the
+   game's prefix. */
 .bsg-lift {
   animation: bsg-rise 0.16s ease-out;
-}
-.bsg-drop {
-  animation: bsg-rise 0.18s ease-out;
 }
 @keyframes bsg-rise {
   from {
@@ -395,11 +393,40 @@
 .bsg-seam {
   animation: bsg-flash 0.7s ease-in forwards;
 }
+/* Hover or focus floats the top cube a little over a faint shadow. */
+.bsg-float {
+  transition: transform 0.14s ease-out;
+}
+.bsg-shadow {
+  opacity: 0;
+  transition: opacity 0.14s ease-out;
+}
+.bsg-shadow.on {
+  opacity: 0.12;
+}
+/* A lifted cube bobs gently while it waits. */
+.bsg-bob {
+  animation: bsg-bob 1.6s ease-in-out infinite alternate;
+}
+@keyframes bsg-bob {
+  from {
+    transform: translateY(-2px);
+  }
+  to {
+    transform: translateY(2px);
+  }
+}
+/* Where the lifted cube would land. */
+.bsg-preview {
+  opacity: 0.45;
+}
 @media (prefers-reduced-motion: reduce) {
   .bsg-lift,
-  .bsg-drop,
   .bsg-shake,
   .bsg-fade,
+  .bsg-bob,
+  .bsg-float,
+  .bsg-shadow,
   .bsg-bar b {
     animation: none;
     transition: none;
