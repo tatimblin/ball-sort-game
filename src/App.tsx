@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useReducer, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { Board } from './board/Board';
 import { FACES, FILLS, FillDefs, INK, patternId } from './board/fills';
 import { cubeFaces, pts } from './board/iso';
@@ -9,7 +9,20 @@ import { createGame, moveCount, reducer, type LogEntry } from './utils/state';
 export interface AppProps {
   difficulty?: Difficulty;
   seed?: number;
+  /** Hear keys anywhere on the page, not only while the game has focus: for
+   *  a page that is the game. Typing in a field, and Enter/Space on another
+   *  control, still belong to the page. */
+  pageKeys?: boolean;
 }
+
+/** What the key handler reads from a key event, React's or the DOM's. */
+type KeyLike = Pick<KeyboardEvent, 'key' | 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'preventDefault' | 'stopPropagation'> & {
+  target: EventTarget | null;
+};
+
+const editable = (el: Element) =>
+  el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement || (el as HTMLElement).isContentEditable;
+const control = (el: Element) => el.closest('button, a[href], [role="button"], summary') !== null;
 
 const randomSeed = () => 1 + Math.floor(Math.random() * 999);
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -61,7 +74,7 @@ function Swatch({ fill, prefix, sorted }: { fill: number; prefix: string; sorted
   );
 }
 
-function App({ difficulty = 'medium', seed = 1 }: AppProps) {
+function App({ difficulty = 'medium', seed = 1, pageKeys = false }: AppProps) {
   const [state, dispatch] = useReducer(reducer, null, () => createGame(difficulty, seed));
   const { level, selected, won, log } = state;
   const prefix = `bsg${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -98,9 +111,10 @@ function App({ difficulty = 'medium', seed = 1 }: AppProps) {
     buttons.current[cursor.current]?.focus();
   };
 
-  // Keys reach the game only while it has focus: the handler sits on the
-  // game's root, never on the document.
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  // Keys reach the game while it has focus: the handler sits on the game's
+  // root. With `pageKeys`, a listener on the document passes it the keys
+  // pressed anywhere else too (see below).
+  const onKeyDown = (e: KeyLike) => {
     if (e.altKey) return;
     const target = e.target as HTMLElement;
     const at = buttons.current.indexOf(target as HTMLButtonElement);
@@ -156,6 +170,34 @@ function App({ difficulty = 'medium', seed = 1 }: AppProps) {
         return handled();
     }
   };
+
+  // The latest handler, for the page listener (which is added once).
+  const keys = useRef(onKeyDown);
+  keys.current = onKeyDown;
+  useEffect(() => {
+    if (!pageKeys) return;
+    const onPageKey = (e: KeyboardEvent) => {
+      const at = e.target instanceof Element ? e.target : null;
+      // Inside the game, the root's own handler already has it.
+      if (!root.current || (at && root.current.contains(at))) return;
+      if (e.defaultPrevented || (at && editable(at))) return;
+      // Enter and Space on the page's own buttons and links stay theirs.
+      if ((e.key === 'Enter' || e.key === ' ') && at && control(at)) return;
+      // Anywhere else on the page, it's as if the game had focus.
+      keys.current({
+        key: e.key,
+        altKey: e.altKey,
+        ctrlKey: e.ctrlKey,
+        metaKey: e.metaKey,
+        shiftKey: e.shiftKey,
+        preventDefault: () => e.preventDefault(),
+        stopPropagation: () => e.stopPropagation(),
+        target: root.current,
+      });
+    };
+    document.addEventListener('keydown', onPageKey);
+    return () => document.removeEventListener('keydown', onPageKey);
+  }, [pageKeys]);
 
   const lines = logLines(log).slice(-7);
   const lifted = selected !== null && level[selected].length ? FILLS[level[selected][level[selected].length - 1]].name : null;

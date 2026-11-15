@@ -4,6 +4,7 @@
 // one ES module, dist/index.js, with the stylesheet inside it. `assetBase` is
 // part of the contract but unused: the bundle loads nothing of its own.
 import { createElement } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
 import css from './index.css?inline';
@@ -16,6 +17,12 @@ export interface MountOptions {
   touchAction?: string;
   /** The tier to start at: 'easy', 'medium' (the default), 'hard' or 'expert'. */
   difficulty?: Difficulty;
+  /** The game is the whole page (tristantimblin.dev's full-screen demo, the
+   *  standalone page), not an embed in the middle of an article: it takes
+   *  focus on mount and hears its keys anywhere on the page, so they work
+   *  without a click first and after a click elsewhere. Typing in a field,
+   *  and Enter/Space on the page's own controls, are left to the page. */
+  autofocus?: boolean;
 }
 
 export interface Handle {
@@ -51,7 +58,9 @@ export function mount(el: HTMLElement, opts: MountOptions = {}): Handle {
     document.addEventListener = addEventListener;
   }
   const difficulty = isDifficulty(opts.difficulty) ? opts.difficulty : undefined;
-  root.render(createElement(App, { difficulty }));
+  // Rendered synchronously, so the game's root exists to take focus at once.
+  flushSync(() => root.render(createElement(App, { difficulty, pageKeys: Boolean(opts.autofocus) })));
+  if (opts.autofocus) host.querySelector<HTMLElement>('.bsg-app')?.focus({ preventScroll: true });
 
   let live = true;
   return {
