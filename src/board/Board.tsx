@@ -3,6 +3,7 @@
 // and mouse drag-and-drop on top. Everything is drawn from the level each
 // render; nothing here holds game state.
 import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { Draggable, type DraggableOptions, type DragMoveEvent, type DragStartEvent } from '@shopify/draggable';
 import { HEIGHT, canMove, isSorted, type Level } from '../utils/rules';
 import type { LogEntry } from '../utils/state';
 import { FILLS, FACES, FillDefs, INK, patternId, patternWeight } from './fills';
@@ -33,8 +34,8 @@ interface Drag {
   dx: number;
   dy: number;
   over: number | null;
-  active: boolean;
-  pointerId: number;
+  /** A finger, not a mouse. */
+  touch: boolean;
 }
 
 /** A cube, or with `height` a column of them drawn as one block: patterns are
@@ -61,12 +62,17 @@ function Cube({ l, i, j, k, fill, prefix, dashed, weight = 1, height = 1, classN
   );
 }
 
-function Ghost({ l, i, j, k }: { l: Layout; i: number; j: number; k: number }) {
-  const b = cubeFaces(l, i, j, k);
+/** A column's empty space as one quiet dashed prism, `dk` cubes tall from
+ *  height `k`: its silhouette, its top face and its front edge, nothing
+ *  between the cubes it could hold. */
+function Ghost({ l, i, j, k, dk }: { l: Layout; i: number; j: number; k: number; dk: number }) {
+  const b = cubeFaces(l, i, j, k, dk);
+  const dash = { fill: 'none', strokeWidth: 0.8, strokeDasharray: '2 3' };
   return (
-    <g>
-      <polygon points={pts(b.hull)} fill="none" stroke="#b9b9b4" strokeWidth="0.8" strokeDasharray="2 3" />
-      <line x1={f(b.top[2][0])} y1={f(b.top[2][1])} x2={f(b.left[2][0])} y2={f(b.left[2][1])} stroke="#cfcfca" strokeWidth="0.8" strokeDasharray="2 3" />
+    <g className="bsg-empty">
+      <polygon points={pts(b.hull)} stroke="#b9b9b4" {...dash} />
+      <polyline points={pts([b.top[3], b.top[2], b.top[1]])} stroke="#c6c6c1" {...dash} />
+      <line x1={f(b.top[2][0])} y1={f(b.top[2][1])} x2={f(b.left[2][0])} y2={f(b.left[2][1])} stroke="#cfcfca" {...dash} />
     </g>
   );
 }
@@ -148,7 +154,7 @@ export function Board(props: BoardProps) {
   const gridStep = GRID * s >= 14 ? GRID : 1;
   const fills = [...new Set(level.flat())].sort((a, b) => a - b);
   const outline = narrow ? 0.85 : 1;
-  const lift = drag?.active ? drag.from : selected;
+  const lift = drag ? drag.from : selected;
   const labelSize = Math.min(12.5, Math.max(10, 0.3 * s));
 
   const local = (e: { clientX: number; clientY: number }) => {
@@ -156,49 +162,103 @@ export function Board(props: BoardProps) {
     return [e.clientX - r.left, e.clientY - r.top] as const;
   };
 
-  // Mouse (and pen) drag. A press only becomes a drag once it moves, so a
-  // plain click still reaches the column button underneath. Touch keeps
-  // tap/tap and the page's own scrolling.
-  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    suppressClick.current = false;
-    if (e.pointerType === 'touch' || e.button !== 0 || won) return;
-    const [x, y] = local(e);
-    const c = columnAt(l, x, y);
-    if (c === null || !level[c].length || isSorted(level[c])) return;
-    setDrag({ from: c, x0: x, y0: y, dx: 0, dy: 0, over: c, active: false, pointerId: e.pointerId });
-  };
+  /** How far above the finger a touch-dragged cube rides, so it stays in sight. */
+  const raise = (d: Drag) => (d.touch ? Math.max(24, 0.9 * s) : 0);
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.pointerType === 'mouse' && !drag?.active) {
+    if (e.pointerType === 'mouse' && !drag) {
       const [hx, hy] = local(e);
       const over = columnAt(l, hx, hy);
       if (over !== hover) setHover(over);
     }
-    if (!drag || e.pointerId !== drag.pointerId) return;
-    const [x, y] = local(e);
-    const dx = x - drag.x0;
-    const dy = y - drag.y0;
-    const active = drag.active || Math.hypot(dx, dy) > 6;
-    if (active && !drag.active) {
-      frame.current!.setPointerCapture(e.pointerId);
-      if (selected !== null) props.onCancel();
-    }
-    setDrag({ ...drag, dx, dy, active, over: columnAt(l, x, y) });
   };
-  const endDrag = (e: ReactPointerEvent<HTMLDivElement>, drop: boolean) => {
-    if (!drag || e.pointerId !== drag.pointerId) return;
-    if (drag.active) {
+
+  // Drag, by mouse or finger, with Shopify's Draggable: the column buttons
+  // are its sources, and a press only becomes a drag past 8px, so a plain
+  // click or tap still reaches the button. Its mirror and other plugins are
+  // off; its events drive the SVG cube, targets and flights drawn here. The
+  // board has touch-action: none, so a finger drag never scrolls or zooms.
+  // Handlers read the latest render through a ref.
+  const dragHandlers = useRef({
+    start: (_e: DragStartEvent) => {},
+    move: (_e: DragMoveEvent) => {},
+    stop: () => {},
+  });
+  const sensorAt = (e: { sensorEvent: { clientX: number; clientY: number; originalEvent: Event } }) => {
+    // The touch sensor reports page coordinates; the mouse sensor client ones.
+    const touch = e.sensorEvent.originalEvent.type.startsWith('touch');
+    const x = e.sensorEvent.clientX - (touch ? window.scrollX : 0);
+    const y = e.sensorEvent.clientY - (touch ? window.scrollY : 0);
+    return { touch, at: local({ clientX: x, clientY: y }) };
+  };
+  dragHandlers.current = {
+    start(e) {
+      const c = Number((e.originalSource as HTMLElement).dataset.col);
+      if (won || !level[c]?.length || isSorted(level[c])) {
+        e.cancel();
+        return;
+      }
+      const { touch, at: [x, y] } = sensorAt(e);
+      if (selected !== null) props.onCancel();
+      setDrag({ from: c, x0: x, y0: y, dx: 0, dy: 0, over: c, touch });
+    },
+    move(e) {
+      if (!drag) return;
+      const { at: [x, y] } = sensorAt(e);
+      setDrag({ ...drag, dx: x - drag.x0, dy: y - drag.y0, over: columnAt(l, x, y) });
+    },
+    stop() {
+      if (!drag) return;
       suppressClick.current = true;
-      const [x, y] = local(e);
+      // Draggable 1.2.1 hands drag:stop no sensor event (it reads
+      // `event.sensorEvent` off the DOM event), so the drop point is the last
+      // drag:move position.
+      const x = drag.x0 + drag.dx;
+      const y = drag.y0 + drag.dy;
       const to = columnAt(l, x, y);
       // Dropped on another column: move, or log why not and snap back. Note
-      // where the cube was let go, so it settles from there.
-      if (drop && to !== null && to !== drag.from) {
-        dragDrop.current = { from: drag.from, to, dx: x - drag.x0, dy: y - drag.y0 };
+      // where the cube was let go, so it settles from there. Off every column
+      // it just goes home.
+      if (to !== null && to !== drag.from) {
+        dragDrop.current = { from: drag.from, to, dx: x - drag.x0, dy: y - drag.y0 - raise(drag) };
         props.onMove(drag.from, to);
       }
-    }
-    setDrag(null);
+      setDrag(null);
+    },
   };
+  useLayoutEffect(() => {
+    const draggable = new Draggable(frame.current!, {
+      draggable: '.bsg-col',
+      distance: 8,
+      delay: { mouse: 0, drag: 0, touch: 0 },
+      exclude: { plugins: Object.values(Draggable.Plugins), sensors: [] },
+      // Its state classes carry the game's prefix, so none can meet a host's
+      // styles (the body one is on only while a drag lasts).
+      classes: {
+        'container:dragging': 'bsg-dnd-container-dragging',
+        'source:dragging': 'bsg-dnd-source-dragging',
+        'source:placed': 'bsg-dnd-source-placed',
+        'container:placed': 'bsg-dnd-container-placed',
+        'body:dragging': 'bsg-dnd-dragging',
+        'draggable:over': 'bsg-dnd-over',
+        'container:over': 'bsg-dnd-container-over',
+        'source:original': 'bsg-dnd-original',
+        mirror: 'bsg-dnd-mirror',
+      },
+      // `exclude` works at runtime but is missing from the package's types.
+    } as DraggableOptions);
+    draggable.on('drag:start', (e: DragStartEvent) => dragHandlers.current.start(e));
+    draggable.on('drag:move', (e: DragMoveEvent) => dragHandlers.current.move(e));
+    draggable.on('drag:stop', () => dragHandlers.current.stop());
+    return () => {
+      // Torn down mid-drag: end the drag first, so Draggable takes its class
+      // and user-select off the host's body, without making a move.
+      dragHandlers.current.stop = () => {};
+      if (draggable.isDragging()) (draggable as unknown as { cancel(): void }).cancel(); // untyped, but public
+      // destroy() leaves its 800ms "placed" class timer running; stop it too.
+      clearTimeout((draggable as unknown as { placedTimeoutID?: number }).placedTimeoutID);
+      draggable.destroy();
+    };
+  }, []);
 
   // Moves animate: the game state has already changed, and a "flight" draws
   // the moving cube from where it was to where it now is while the real one
@@ -311,7 +371,7 @@ export function Board(props: BoardProps) {
 
   const invalidAt = lastEntry?.kind === 'invalid' ? lastEntry.to : null;
   const droppedAt = lastEntry?.kind === 'move' ? lastEntry.to : null;
-  const dragging = drag?.active ? drag : null;
+  const dragging = drag;
 
   // At most two highlights: where the lifted cube came from, and where it
   // would go — the column under the dragged cube, else the keyboard-focused
@@ -352,15 +412,16 @@ export function Board(props: BoardProps) {
         fill="none" stroke="#c4c4bf" strokeWidth="0.8" strokeDasharray="2 2" />,
     );
 
+    // The empty space above the stack (and the slot a lifted cube left) is one
+    // prism. The drop preview, a dashed, faded copy of the lifted cube where
+    // it would land, takes the bottom of it.
     const preview = c === target && targetOk && liftedFill !== null;
-    for (let k = col.length; k < HEIGHT; k++) {
-      // The drop preview: a dashed, faded copy of the lifted cube where it would land.
-      if (preview && k === col.length) {
-        parts.push(<Cube key={`pv${k}`} l={l} i={i} j={j} k={k} fill={liftedFill!} prefix={P} dashed weight={outline} className="bsg-preview" />);
-      } else {
-        parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} />);
-      }
+    let emptyFrom = col.length - (lift === c && col.length && !sorted ? 1 : 0);
+    if (preview) {
+      parts.push(<Cube key="pv" l={l} i={i} j={j} k={col.length} fill={liftedFill!} prefix={P} dashed weight={outline} className="bsg-preview" />);
+      emptyFrom = col.length + 1;
     }
+    if (emptyFrom < HEIGHT) parts.push(<Ghost key="empty" l={l} i={i} j={j} k={emptyFrom} dk={HEIGHT - emptyFrom} />);
     // A cube still flying in lands first; the block forms after.
     const landing = flight !== null && !flight.lifted && flight.c === c;
     const merged = sorted && !landing;
@@ -381,7 +442,6 @@ export function Board(props: BoardProps) {
     if (!merged) col.forEach((v, k) => {
       const top = k === col.length - 1;
       if (top && lift === c) {
-        parts.push(<Ghost key={`g${k}`} l={l} i={i} j={j} k={k} />);
         if (dragging) return;
         // Dotted construction lines from the slot up to the lifted cube.
         for (const [a, b] of [[i, j + 1], [i + 1, j + 1], [i + 1, j]] as const) {
@@ -502,7 +562,7 @@ export function Board(props: BoardProps) {
     const { i, j } = l.places[dragging.from];
     const k = level[dragging.from].length - 1;
     ghost = (
-      <g transform={`translate(${f(dragging.dx)},${f(dragging.dy)})`} style={{ pointerEvents: 'none' }}>
+      <g transform={`translate(${f(dragging.dx)},${f(dragging.dy - raise(dragging))})`} style={{ pointerEvents: 'none' }}>
         <Cube l={l} i={i} j={j} k={k + LIFT} fill={level[dragging.from][k]} prefix={P} dashed weight={outline + 0.2} />
       </g>
     );
@@ -512,11 +572,9 @@ export function Board(props: BoardProps) {
     <div
       ref={frame}
       className={`bsg-frame${dragging ? ' bsg-dragging' : ''}`}
-      onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={(e) => endDrag(e, true)}
-      onPointerCancel={(e) => endDrag(e, false)}
       onPointerLeave={() => setHover(null)}
+      onPointerDown={() => { suppressClick.current = false; }}
       onClickCapture={(e) => {
         if (suppressClick.current) {
           suppressClick.current = false;

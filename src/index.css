@@ -319,6 +319,9 @@
   border: 1px solid var(--rule);
   background: #fafaf8;
   overflow: hidden;
+  /* Fingers drag cubes here: no scroll, zoom or pan from the board. The rest
+     of the game keeps the root's touch-action. */
+  touch-action: none;
 }
 .bsg-board {
   position: absolute;
