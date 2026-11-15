@@ -1,7 +1,7 @@
 # ball sort game
 
 A puzzle of isometric cubes, drawn as a blueprint: tap or click a column to
-lift its top cube, then tap another to drop it there (or drag it with a mouse).
+lift its top cube, then tap another to drop it there (or drag it, with a mouse or a finger).
 A cube lands only on an empty column or on its own fill, four to a column. Sort
 every fill into its own column to win the level. Fills are patterns (solid,
 hatch, dot, cross, ink, white, check, rule), not colours.

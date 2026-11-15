@@ -163,10 +163,10 @@ function App({ difficulty = 'medium', seed = 1 }: AppProps) {
   return (
     <div ref={root} className={`bsg-app${narrow ? ' bsg-narrow' : ''}${won ? ' bsg-won' : ''}`} tabIndex={-1} onKeyDown={onKeyDown}>
       <header className="bsg-head">
-        <h1>Ball Sort</h1>
-        <p>Lift the top cube. Set it on a match or an empty column. Four of a fill sorts it.</p>
+        <h1>Ball Sort Game</h1>
+        <p>Now as cubes! Sort the patterns into separate columns without stacking on a different pattern</p>
       </header>
-      <section className="bsg-card" aria-label="Ball Sort">
+      <section className="bsg-card" aria-label="Ball Sort Game">
         <div className="bsg-side">
           <div className="bsg-hd">
             <span>LEVEL {pad2(state.seed)}<br />SORT BY FILL</span>
